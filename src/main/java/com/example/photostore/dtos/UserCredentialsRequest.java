@@ -1,9 +1,6 @@
 package com.example.photostore.dtos;
 
-import com.example.photostore.entity.Role;
-
 import jakarta.annotation.Nonnull;
-import jakarta.annotation.Nullable;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -17,19 +14,11 @@ import lombok.Setter;
 @Setter
 @Builder
 @Data
-public class UserDTO {
-    private Long id;
 
+// Used for registering and authenticating users.
+public class UserCredentialsRequest {
     @Nonnull
     private String email;
-
-
-    @Nullable
-    private String profile_picture_url;
-    
     @Nonnull
-    private float storage_space;
-
-    @Nonnull
-    private Role role;
+    private String password;
 }

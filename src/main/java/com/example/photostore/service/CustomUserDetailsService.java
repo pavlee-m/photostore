@@ -1,6 +1,10 @@
 package com.example.photostore.service;
 
+import java.util.List;
+
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -8,8 +12,6 @@ import org.springframework.stereotype.Service;
 
 import com.example.photostore.entity.User;
 import com.example.photostore.repository.UserRepository;
-
-import io.jsonwebtoken.lang.Collections;
 
 // Used for overriding the default user details service provided by Spring Security
 
@@ -28,6 +30,9 @@ public class CustomUserDetailsService implements UserDetailsService {
         if (user == null) {
             throw new UsernameNotFoundException("User not found with email: " + email);
         }
-        return new org.springframework.security.core.userdetails.User(user.getEmail(), user.getPassword(), Collections.emptyList());
+        List<GrantedAuthority> authorities = List.of(
+            new SimpleGrantedAuthority(user.getRole().getName())
+        );
+        return new org.springframework.security.core.userdetails.User(user.getEmail(), user.getPassword(), authorities);
     }
 }

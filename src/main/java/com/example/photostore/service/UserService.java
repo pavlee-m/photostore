@@ -33,4 +33,8 @@ public class UserService {
         return userRepository.existsByEmail(email);
     }
     
+
+    public boolean existsByRole(String role) {
+        return userRepository.existsByRole_Name(role);
+    }
 }

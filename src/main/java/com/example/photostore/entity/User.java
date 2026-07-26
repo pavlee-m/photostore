@@ -5,6 +5,8 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -12,7 +14,7 @@ import lombok.NoArgsConstructor;
 
 @Entity
 @Data
-@Table(name="Users")
+@Table(name="users")
 @NoArgsConstructor
 @AllArgsConstructor
 public class User {
@@ -28,4 +30,13 @@ public class User {
 
     @Column(nullable=true)
     private String profile_picture_url;
+
+    // This is the storage size specified in MB, default is 25GB, modified by admin.
+    @Column(nullable=false, columnDefinition="float default 25600.0")
+    private float storage_space;
+
+    @ManyToOne
+    @JoinColumn(name = "role_id", nullable=false)
+    private Role role;
+
 }
