@@ -26,6 +26,7 @@ public class User {
     @Column(unique=true)
     private String email;
 
+    @Column(nullable=false)
     private String password;
 
     @Column(nullable=true)
@@ -33,7 +34,7 @@ public class User {
 
     // This is the storage size specified in MB, default is 25GB, modified by admin.
     @Column(nullable=false, columnDefinition="float default 25600.0")
-    private float storage_space;
+    private Float storage_space;
 
     @ManyToOne
     @JoinColumn(name = "role_id", nullable=false)
