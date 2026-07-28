@@ -1,6 +1,7 @@
 package com.example.photostore.service;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.example.photostore.entity.Role;
 import com.example.photostore.repository.RoleRepository;
@@ -17,6 +18,7 @@ public class RoleService {
         return roleRepository.existsByName(name);
     }
 
+    @Transactional
     public void saveRole(Role role) {
         roleRepository.save(role);
     }

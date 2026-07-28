@@ -28,14 +28,14 @@ public class CustomUserDetailsService implements UserDetailsService {
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
         User user = userRepository.findByEmail(email);
         if (user == null) {
-            throw new UsernameNotFoundException("User not found with email: " + email);
+            throw new UsernameNotFoundException("User not found.");
         }
         return buildUserDetails(user);
     }
 
     public UserDetails loadUserById(Long userId) throws UsernameNotFoundException {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new UsernameNotFoundException("User not found with id: " + userId));
+                .orElseThrow(() -> new UsernameNotFoundException("User not found."));
         return buildUserDetails(user);
     }
 

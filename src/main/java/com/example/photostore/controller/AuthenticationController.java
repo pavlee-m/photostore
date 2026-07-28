@@ -8,13 +8,12 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.example.photostore.dtos.PasswordBodyRequest;
 import com.example.photostore.dtos.UserCredentialsRequest;
 import com.example.photostore.security.GeneratedToken;
 import com.example.photostore.security.JwtUtil;
@@ -33,9 +32,6 @@ public class AuthenticationController {
     private UserService userService;
     @Autowired
     private RefreshTokenService refreshTokenService;
-    @Autowired
-    private PasswordEncoder passwordEncoder;
-
     @PostMapping("/signin")
     public ResponseEntity<String> authenticateUser(@RequestBody UserCredentialsRequest userCredentialsRequest) {
         Authentication authentication = authenticationManager.authenticate(
@@ -57,10 +53,10 @@ public class AuthenticationController {
     }
 
     @PostMapping("/change-password")
-    public ResponseEntity<String> changePassword(@CookieValue(name = "accessToken") String accessToken,
-            @RequestBody String newPassword) {
-        final Long userId = jwtUtils.getUserIdFromToken(accessToken);
-        userService.changePassword(userId, passwordEncoder.encode(newPassword));
+    public ResponseEntity<String> changePassword(Authentication authentication,
+            @RequestBody PasswordBodyRequest newPasswordRequest) {
+        final Long userId = Long.parseLong(authentication.getName());
+        userService.changePassword(userId, newPasswordRequest.getPassword());
         return ResponseEntity.ok("Password changed successfully!");
     }
 

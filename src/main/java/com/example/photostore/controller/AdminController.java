@@ -51,7 +51,7 @@ public class AdminController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Email not available!");
         }
         Role role = roleService.findByName("ROLE_ADMIN");
-        final User newUser = new User(null, createUserRequest.getEmail(),encoder.encode(createUserRequest.getPassword()), "", 25600.0f, role);
+        final User newUser = new User(null, createUserRequest.getEmail(),encoder.encode(createUserRequest.getPassword()), null, 25600.0f, role);
         userService.saveUser(newUser);
         return ResponseEntity.status(HttpStatus.CREATED).body("Admin created successfully!");
     }
@@ -72,7 +72,7 @@ public class AdminController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Email not available!");
         }
         Role userRole = roleService.findByName("ROLE_USER");
-        final User newUser = new User(null, createUserRequest.getEmail(), encoder.encode(createUserRequest.getPassword()), "",
+        final User newUser = new User(null, createUserRequest.getEmail(), encoder.encode(createUserRequest.getPassword()), null,
                 25600.0f, userRole);
         userService.saveUser(newUser);
         return ResponseEntity.status(HttpStatus.CREATED).body("User registered successfully!");
@@ -86,24 +86,14 @@ public class AdminController {
 
     @PatchMapping(value="/update-user/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     // Figure out the best way to represent this request
-    public ResponseEntity<String> updateUserProfile(@PathVariable Long id, @RequestPart("file") MultipartFile file, @RequestPart("user") AdminUpdateUserRequest updateUserRequest) {
-        try{
-            userService.adminUpdateUser(id, updateUserRequest);
-            return ResponseEntity.status(HttpStatus.OK).body("User updated successfully!");
-        }
-        catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Failed to update user!");
-        }
+    public ResponseEntity<String> updateUserProfile(@PathVariable Long id, @RequestPart("profile_picture") MultipartFile profilePicture, @RequestPart("user") AdminUpdateUserRequest updateUserRequest) {
+        userService.adminUpdateUser(id, updateUserRequest, profilePicture);
+        return ResponseEntity.status(HttpStatus.OK).body("User updated successfully!");
     }
 
     @PostMapping("/change-password/{id}")
     public ResponseEntity<String> changePassword(@PathVariable Long id, @RequestBody String newPassword) {
-        try{
-            userService.changePassword(id, newPassword);
-            return ResponseEntity.status(HttpStatus.OK).body("Password changed successfully!");
-        }
-        catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Failed to change password!");
-        }
+        userService.changePassword(id, newPassword);
+        return ResponseEntity.status(HttpStatus.OK).body("Password changed successfully!");
     }
 }

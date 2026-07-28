@@ -3,6 +3,7 @@ package com.example.photostore.service;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.example.photostore.repository.UserRepository;
@@ -12,6 +13,10 @@ import lombok.RequiredArgsConstructor;
 import com.example.photostore.dtos.AdminUpdateUserRequest;
 import com.example.photostore.dtos.UserDTO;
 import com.example.photostore.entity.User;
+import com.example.photostore.exception.EmailAlreadyExistsException;
+import com.example.photostore.exception.RoleNotFoundException;
+import com.example.photostore.exception.StorageCapacityExceededException;
+import com.example.photostore.exception.UserNotFoundException;
 import com.example.photostore.mappers.UserMapper;
 
 @Service
@@ -30,20 +35,24 @@ public class UserService {
     @Autowired
     private RoleService roleService;
     
+    @Autowired
+    private RefreshTokenService refreshTokenService;
+    
     public UserDTO getUserDetails(Long userId) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
+                .orElseThrow(() -> new UserNotFoundException("User not found with id: " + userId));
         return userMapper.userToUserDTO(user);
     }
 
     public User findByEmail(String email) {
         User user = userRepository.findByEmail(email);
         if (user == null) {
-            throw new RuntimeException("User not found with email: " + email);
+            throw new UserNotFoundException("User not found with email: " + email);
         }
         return user;
     }
 
+    @Transactional
     public void saveUser(User user) {
         userRepository.save(user);
     }
@@ -56,32 +65,37 @@ public class UserService {
         return userRepository.existsByRole_Name(role);
     }
 
+    @Transactional
     public void deleteUser(Long userId) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
-        storageService.deleteProfilePicture(user.getProfile_picture_url());
+        refreshTokenService.deleteAllTokensByUserId(userId);
+        userRepository.findById(userId).orElseThrow(() -> new UserNotFoundException("User not found with id: " + userId));
         userRepository.deleteById(userId);
+        storageService.deleteProfilePictureByUserId(userId);
     }
 
+    @Transactional
     public void changePassword(Long userId, String newPassword) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
-        user.setPassword(newPassword);
+                .orElseThrow(() -> new UserNotFoundException("User not found with id: " + userId));
+        user.setPassword(passwordEncoder.encode(newPassword));
         userRepository.save(user);
+        // Logs out all tokens for the user.
+        refreshTokenService.deleteAllTokensByUserId(userId);
     }
 
     public boolean verifyPassword(Long userId, String password) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
+                .orElseThrow(() -> new UserNotFoundException("User not found with id: " + userId));
         return passwordEncoder.matches(password, user.getPassword());
     }
 
+    @Transactional
     public void updateUserProfile(Long userId, String email, MultipartFile file) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
+                .orElseThrow(() -> new UserNotFoundException("User not found with id: " + userId));
         if (email != null) { 
             if (existsByEmail(email) && !email.equals(user.getEmail())) {
-                throw new RuntimeException("Email already exists!");
+                throw new EmailAlreadyExistsException();
             }
         }
         if (file != null && !file.isEmpty()) {
@@ -92,12 +106,19 @@ public class UserService {
         userRepository.save(user);
     }
 
-    public void adminUpdateUser(Long id, AdminUpdateUserRequest updateUserRequest) {
-        User user = userRepository.findById(id).orElseThrow(() -> new RuntimeException("User not found with id: " + id));
+    @Transactional
+    public void adminUpdateUser(Long id, AdminUpdateUserRequest updateUserRequest, MultipartFile profilePicture) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new UserNotFoundException("User not found with id: " + id));
+
+        if (profilePicture != null && !profilePicture.isEmpty()) {
+            String profilePicturePath = storageService.uploadProfilePicture(user.getId(), profilePicture);
+            user.setProfile_picture_url(profilePicturePath);
+        }
 
         if (updateUserRequest.getEmail() != null) {
             if (userRepository.existsByEmail(updateUserRequest.getEmail()) && !updateUserRequest.getEmail().equals(user.getEmail())) {
-                throw new RuntimeException("Email already exists!");
+                throw new EmailAlreadyExistsException();
             }
             else {
                 user.setEmail(updateUserRequest.getEmail());
@@ -106,7 +127,7 @@ public class UserService {
 
         if (updateUserRequest.getStorage_space() != null) {
             if (updateUserRequest.getStorage_space() > storageService.getStorageMaxSizeMb()) {
-                throw new RuntimeException("Storage space is too large!");
+                throw new StorageCapacityExceededException();
             }
             else {
                 user.setStorage_space(updateUserRequest.getStorage_space());
@@ -118,7 +139,7 @@ public class UserService {
                 user.setRole(roleService.findByName(updateUserRequest.getRoleName()));
             }
             else {
-                throw new RuntimeException("Role does not exist!");
+                throw new RoleNotFoundException(updateUserRequest.getRoleName());
             }
         }
         

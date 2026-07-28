@@ -1,10 +1,13 @@
 package com.example.photostore.controller;
 
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import org.junit.jupiter.api.MethodOrderer;
@@ -17,6 +20,7 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.mock.web.MockMultipartFile;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -84,5 +88,86 @@ class RouteSecurityIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(content().string("Signed out successfully!"))
                 .andExpect(header().exists("Set-Cookie"));
+    }
+
+    @Test
+    @Order(7)
+    void signin_isPublic() throws Exception {
+        mockMvc.perform(post("/api/v1/auth/signin")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\":\"nobody@example.com\",\"password\":\"wrong\"}"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("INVALID_CREDENTIALS"));
+    }
+
+    @Test
+    @Order(8)
+    void changePassword_requiresAuthentication() throws Exception {
+        mockMvc.perform(post("/api/v1/auth/change-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"password\":\"new-password\"}"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @Order(9)
+    void getUserDetails_requiresAuthentication() throws Exception {
+        mockMvc.perform(get("/api/v1/user/me"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @Order(10)
+    void deleteUser_requiresAdminRole() throws Exception {
+        mockMvc.perform(delete("/api/v1/admin/delete-user/1"))
+                .andExpect(status().isUnauthorized());
+
+        mockMvc.perform(delete("/api/v1/admin/delete-user/1")
+                        .with(user("user@example.com").roles("USER")))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @Order(11)
+    void updateUser_requiresAdminRole() throws Exception {
+        MockMultipartFile userPart = new MockMultipartFile(
+                "user", "", MediaType.APPLICATION_JSON_VALUE,
+                "{\"email\":\"updated@example.com\"}".getBytes());
+        MockMultipartFile filePart = new MockMultipartFile(
+                "profile_picture", "avatar.jpg", "image/jpeg", new byte[] {1, 2, 3});
+
+        mockMvc.perform(multipart("/api/v1/admin/update-user/1")
+                        .file(userPart)
+                        .file(filePart)
+                        .with(request -> {
+                            request.setMethod("PATCH");
+                            return request;
+                        }))
+                .andExpect(status().isUnauthorized());
+
+        mockMvc.perform(multipart("/api/v1/admin/update-user/1")
+                        .file(userPart)
+                        .file(filePart)
+                        .with(user("user@example.com").roles("USER"))
+                        .with(request -> {
+                            request.setMethod("PATCH");
+                            return request;
+                        }))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @Order(12)
+    void changePasswordForUser_requiresAdminRole() throws Exception {
+        mockMvc.perform(post("/api/v1/admin/change-password/1")
+                        .contentType(MediaType.TEXT_PLAIN)
+                        .content("new-password"))
+                .andExpect(status().isUnauthorized());
+
+        mockMvc.perform(post("/api/v1/admin/change-password/1")
+                        .contentType(MediaType.TEXT_PLAIN)
+                        .content("new-password")
+                        .with(user("user@example.com").roles("USER")))
+                .andExpect(status().isForbidden());
     }
 }

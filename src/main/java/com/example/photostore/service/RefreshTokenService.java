@@ -3,6 +3,7 @@ package com.example.photostore.service;
 import java.time.Instant;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.example.photostore.entity.RefreshToken;
 import com.example.photostore.entity.User;
@@ -19,6 +20,7 @@ public class RefreshTokenService {
     private final UserRepository userRepository;
 
 
+    @Transactional
     public void addRefreshToken(Long userId, String refreshToken, Instant expiresAt) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found: " + userId));
@@ -29,12 +31,19 @@ public class RefreshTokenService {
         refreshTokenRepository.save(newRefreshToken);
     }
 
+    @Transactional
     public void deleteExpiredTokens() {
         refreshTokenRepository.deleteByExpiresAtBefore(Instant.now());
     }
 
+    @Transactional
     public void deleteRefreshToken(String refreshToken) {
         refreshTokenRepository.deleteByToken(refreshToken);
+    }
+
+    @Transactional
+    public void deleteAllTokensByUserId(Long userId) {
+        refreshTokenRepository.deleteAllTokensByUserId(userId);
     }
 
     public boolean isRefreshTokenValid(String refreshToken) {
