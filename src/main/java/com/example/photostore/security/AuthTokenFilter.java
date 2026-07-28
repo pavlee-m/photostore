@@ -40,15 +40,15 @@ public class AuthTokenFilter extends OncePerRequestFilter {
         String jwt = parseJwt(request, "accessToken");
         if (jwt != null && jwtUtil.validateJwtToken(jwt))
         {
-            authenticateUser(jwtUtil.getUserFromToken(jwt), request);
+            authenticateUser(jwtUtil.getUserIdFromToken(jwt), request);
         }
         else {
             String refreshToken = parseJwt(request, "refreshToken");
             if (refreshToken != null && refreshTokenService.isRefreshTokenValid(refreshToken)) {
-                String email = jwtUtil.getUserFromToken(refreshToken);
-                GeneratedToken accessToken = jwtUtil.generateToken(email);
+                Long userId = jwtUtil.getUserIdFromToken(refreshToken);
+                GeneratedToken accessToken = jwtUtil.generateToken(userId);
                 response.setHeader(HttpHeaders.SET_COOKIE, ResponseCookie.from("accessToken", accessToken.token()).path("/").httpOnly(true).build().toString());
-                authenticateUser(email, request);
+                authenticateUser(userId, request);
             } else if (refreshToken != null) {
                 log.debug("Refresh token is invalid, removing it");
                 refreshTokenService.deleteRefreshToken(refreshToken);
@@ -58,8 +58,8 @@ public class AuthTokenFilter extends OncePerRequestFilter {
         filterChain.doFilter(request, response);
     }
 
-    private void authenticateUser(String email, HttpServletRequest request) {
-        UserDetails userDetails = userDetailsService.loadUserByUsername(email);
+    private void authenticateUser(Long userId, HttpServletRequest request) {
+        UserDetails userDetails = userDetailsService.loadUserById(userId);
         UsernamePasswordAuthenticationToken authenticationToken =
                 new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
         authenticationToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));

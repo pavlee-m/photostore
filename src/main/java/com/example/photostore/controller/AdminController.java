@@ -2,18 +2,23 @@ package com.example.photostore.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
+import com.example.photostore.dtos.AdminUpdateUserRequest;
 import com.example.photostore.dtos.UserCredentialsRequest;
 import com.example.photostore.entity.Role;
 import com.example.photostore.entity.User;
@@ -73,10 +78,32 @@ public class AdminController {
         return ResponseEntity.status(HttpStatus.CREATED).body("User registered successfully!");
     }
 
-    @DeleteMapping("/delete-user/{email}")
-    public ResponseEntity<String> deleteUser(@PathVariable String email) {
-        userService.deleteUser(email);
+    @DeleteMapping("/delete-user/{id}")
+    public ResponseEntity<String> deleteUser(@PathVariable Long id) {
+        userService.deleteUser(id);
         return ResponseEntity.status(HttpStatus.OK).body("User deleted successfully!");
     }
 
+    @PatchMapping(value="/update-user/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    // Figure out the best way to represent this request
+    public ResponseEntity<String> updateUserProfile(@PathVariable Long id, @RequestPart("file") MultipartFile file, @RequestPart("user") AdminUpdateUserRequest updateUserRequest) {
+        try{
+            userService.adminUpdateUser(id, updateUserRequest);
+            return ResponseEntity.status(HttpStatus.OK).body("User updated successfully!");
+        }
+        catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Failed to update user!");
+        }
+    }
+
+    @PostMapping("/change-password/{id}")
+    public ResponseEntity<String> changePassword(@PathVariable Long id, @RequestBody String newPassword) {
+        try{
+            userService.changePassword(id, newPassword);
+            return ResponseEntity.status(HttpStatus.OK).body("Password changed successfully!");
+        }
+        catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Failed to change password!");
+        }
+    }
 }

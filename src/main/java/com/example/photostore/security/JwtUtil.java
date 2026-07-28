@@ -37,20 +37,31 @@ public class JwtUtil {
         this.key = Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
     }
 
-    public GeneratedToken generateToken(String email) {
+    public GeneratedToken generateToken(Long userId) {
         Instant expiresAt = Instant.now().plus(jwtExpirationMs, ChronoUnit.MILLIS);
-        String token = Jwts.builder().subject(email).issuedAt(new Date()).expiration(new Date((new Date()).getTime() + jwtExpirationMs)).signWith(key).compact();
+        String token = Jwts.builder()
+                .subject(userId.toString())
+                .issuedAt(new Date())
+                .expiration(new Date((new Date()).getTime() + jwtExpirationMs))
+                .signWith(key)
+                .compact();
         return new GeneratedToken(token, expiresAt);
     }
 
-    public GeneratedToken generateRefreshToken(String email) {
+    public GeneratedToken generateRefreshToken(Long userId) {
         Instant expiresAt = Instant.now().plus(jwtRefreshExpirationMs, ChronoUnit.MILLIS);
-        String token = Jwts.builder().subject(email).issuedAt(new Date()).expiration(new Date((new Date()).getTime() + jwtRefreshExpirationMs)).signWith(key).compact();
+        String token = Jwts.builder()
+                .subject(userId.toString())
+                .issuedAt(new Date())
+                .expiration(new Date((new Date()).getTime() + jwtRefreshExpirationMs))
+                .signWith(key)
+                .compact();
         return new GeneratedToken(token, expiresAt);
     }
 
-    public String getUserFromToken(String token) {
-        return Jwts.parser().verifyWith(key).build().parseSignedClaims(token).getPayload().getSubject();
+    public Long getUserIdFromToken(String token) {
+        String subject = Jwts.parser().verifyWith(key).build().parseSignedClaims(token).getPayload().getSubject();
+        return Long.parseLong(subject);
     }
 
     public boolean validateJwtToken(String token) {

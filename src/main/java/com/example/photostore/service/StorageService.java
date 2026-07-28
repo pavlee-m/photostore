@@ -1,6 +1,15 @@
 package com.example.photostore.service;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
+import java.util.List;
+
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.util.unit.DataSize;
 import org.springframework.web.multipart.MultipartFile;
 
 import lombok.RequiredArgsConstructor;
@@ -11,9 +20,84 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class StorageService {
     
-    // TODO: Implement file upload
-    // TODO: Implement file validation to allow only images
-    public void uploadFile(Long userId, MultipartFile file) {
-        throw new UnsupportedOperationException("Not implemented");
+
+    // For image/video upload
+    @Value("${photostore.max-file-size}")
+    private DataSize maxFileSize;
+
+    @Value("${photostore.allowed-file-extensions-image}")
+    private List<String> allowedFileExtensionsImage;
+
+    @Value("${photostore.allowed-file-extensions-video}")
+    private List<String> allowedFileExtensionsVideo;
+
+    @Value("${photostore.profile_pictures_directory}")
+    private String profilePicturesDirectory;
+
+    @Value("${photostore.storage_directory}")
+    private String storageDirectory;
+
+    @Value("${photostore.storage_max_size_mb}")
+    private int storageMaxSizeMb;
+
+    public String uploadProfilePicture(Long userId, MultipartFile file) {
+        validateImageFile(file);
+        String fileExtension = extractFormatFromMimeType(file.getContentType());
+        String fileName = userId + "." + fileExtension;
+        try {
+            Path path = Paths.get(profilePicturesDirectory, fileName);
+            Files.copy(file.getInputStream(), path, StandardCopyOption.REPLACE_EXISTING);
+            return path.toString();
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to upload profile picture", e);
+        }
     }
+
+    // For image file validation (only used for profile picture)
+    private void validateImageFile(MultipartFile file) {
+        String contentType = file.getContentType();
+        if (file.isEmpty()) {
+            throw new IllegalArgumentException("File is empty");
+        }
+
+        else if (file.getSize() > maxFileSize.toBytes()) {
+            throw new IllegalArgumentException("File size is too large");
+        }
+        else if (contentType == null || allowedFileExtensionsImage.contains(extractFormatFromMimeType(contentType))) {
+            throw new IllegalArgumentException("File type is not allowed");
+        }
+    }
+
+    // Will be used for general image/video upload
+    private void validateUploadFile(MultipartFile file) {
+        String contentType = file.getContentType();
+        if (file.isEmpty()) {
+            throw new IllegalArgumentException("File is empty");
+        }
+        else if (file.getSize() > maxFileSize.toBytes()) {
+            throw new IllegalArgumentException("File size is too large");
+        }
+        else if (contentType == null || allowedFileExtensionsImage.contains(extractFormatFromMimeType(contentType)) || allowedFileExtensionsVideo.contains(extractFormatFromMimeType(contentType))) {
+            throw new IllegalArgumentException("File type is not allowed");
+        }
+    }
+
+    private String extractFormatFromMimeType(String mimeType) {
+        return mimeType.split("/")[1];
+
+    }
+
+    public void deleteProfilePicture(String profile_picture_url) {
+        Path path = Paths.get(profile_picture_url);
+        try {
+            Files.deleteIfExists(path);
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to delete profile picture", e);
+        }
+    }
+
+    public int getStorageMaxSizeMb() {
+        return storageMaxSizeMb;
+    }
+    
 }

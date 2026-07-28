@@ -19,11 +19,9 @@ public class RefreshTokenService {
     private final UserRepository userRepository;
 
 
-    public void addRefreshToken(String email, String refreshToken, Instant expiresAt) {
-        User user = userRepository.findByEmail(email);
-        if (user == null) {
-            throw new IllegalArgumentException("User not found: " + email);
-        }
+    public void addRefreshToken(Long userId, String refreshToken, Instant expiresAt) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found: " + userId));
         RefreshToken newRefreshToken = new RefreshToken();
         newRefreshToken.setUser(user);
         newRefreshToken.setToken(refreshToken);

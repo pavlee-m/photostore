@@ -24,7 +24,7 @@ import com.example.photostore.service.UserService;
 @RestController
 @RequestMapping("/api/v1/auth")
 public class AuthenticationController {
-    
+
     @Autowired
     private AuthenticationManager authenticationManager;
     @Autowired
@@ -35,39 +35,45 @@ public class AuthenticationController {
     private RefreshTokenService refreshTokenService;
     @Autowired
     private PasswordEncoder passwordEncoder;
-    
+
     @PostMapping("/signin")
     public ResponseEntity<String> authenticateUser(@RequestBody UserCredentialsRequest userCredentialsRequest) {
         Authentication authentication = authenticationManager.authenticate(
-            new org.springframework.security.authentication.UsernamePasswordAuthenticationToken(userCredentialsRequest.getEmail(), userCredentialsRequest.getPassword())
-        );
+                new org.springframework.security.authentication.UsernamePasswordAuthenticationToken(
+                        userCredentialsRequest.getEmail(), userCredentialsRequest.getPassword()));
         final UserDetails userDetails = (UserDetails) authentication.getPrincipal();
-        GeneratedToken accessToken = jwtUtils.generateToken(userDetails.getUsername());
-        GeneratedToken refreshToken = jwtUtils.generateRefreshToken(userDetails.getUsername());
-        refreshTokenService.addRefreshToken(userDetails.getUsername(), refreshToken.token(), refreshToken.expiresAt());
-        ResponseCookie accessCookie = ResponseCookie.from("accessToken", accessToken.token()).path("/").httpOnly(true).sameSite("Lax").build();
-        ResponseCookie refreshCookie = ResponseCookie.from("refreshToken", refreshToken.token()).path("/").httpOnly(true).sameSite("Lax").build();
+        final Long userId = Long.parseLong(userDetails.getUsername());
+        GeneratedToken accessToken = jwtUtils.generateToken(userId);
+        GeneratedToken refreshToken = jwtUtils.generateRefreshToken(userId);
+        refreshTokenService.addRefreshToken(userId, refreshToken.token(), refreshToken.expiresAt());
+        ResponseCookie accessCookie = ResponseCookie.from("accessToken", accessToken.token()).path("/").httpOnly(true)
+                .sameSite("Lax").build();
+        ResponseCookie refreshCookie = ResponseCookie.from("refreshToken", refreshToken.token()).path("/")
+                .httpOnly(true).sameSite("Lax").build();
         return ResponseEntity.ok()
-        .header(HttpHeaders.SET_COOKIE, accessCookie.toString())
-        .header(HttpHeaders.SET_COOKIE, refreshCookie.toString())
-        .body("ok!");
+                .header(HttpHeaders.SET_COOKIE, accessCookie.toString())
+                .header(HttpHeaders.SET_COOKIE, refreshCookie.toString())
+                .body("ok!");
     }
 
     @PostMapping("/change-password")
-    public ResponseEntity<String> changePassword(@CookieValue(name = "accessToken") String accessToken, @RequestBody String newPassword) {
-        final String email = jwtUtils.getUserFromToken(accessToken);
-        userService.changePassword(email, passwordEncoder.encode(newPassword));
+    public ResponseEntity<String> changePassword(@CookieValue(name = "accessToken") String accessToken,
+            @RequestBody String newPassword) {
+        final Long userId = jwtUtils.getUserIdFromToken(accessToken);
+        userService.changePassword(userId, passwordEncoder.encode(newPassword));
         return ResponseEntity.ok("Password changed successfully!");
     }
-    
+
     @PostMapping("/signout")
     public ResponseEntity<String> signout(Authentication authentication) {
         if (authentication == null || !authentication.isAuthenticated()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
         refreshTokenService.deleteRefreshToken(authentication.getName());
-        ResponseCookie accessCookie = ResponseCookie.from("accessToken", "").path("/").httpOnly(true).sameSite("Lax").build();
-        ResponseCookie refreshCookie = ResponseCookie.from("refreshToken", "").path("/").httpOnly(true).sameSite("Lax").build();
+        ResponseCookie accessCookie = ResponseCookie.from("accessToken", "").path("/").httpOnly(true).sameSite("Lax")
+                .build();
+        ResponseCookie refreshCookie = ResponseCookie.from("refreshToken", "").path("/").httpOnly(true).sameSite("Lax")
+                .build();
         return ResponseEntity.ok()
                 .header(HttpHeaders.SET_COOKIE, accessCookie.toString())
                 .header(HttpHeaders.SET_COOKIE, refreshCookie.toString())

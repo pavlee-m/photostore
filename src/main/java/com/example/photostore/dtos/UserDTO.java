@@ -18,6 +18,7 @@ import lombok.Setter;
 @Builder
 @Data
 public class UserDTO {
+    @Nonnull
     private Long id;
 
     @Nonnull

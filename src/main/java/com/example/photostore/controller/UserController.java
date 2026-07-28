@@ -18,7 +18,6 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.example.photostore.dtos.UserDTO;
 import com.example.photostore.security.JwtUtil;
-import com.example.photostore.service.StorageService;
 import com.example.photostore.service.UserService;
 
 @RestController
@@ -30,23 +29,20 @@ public class UserController {
     @Autowired
     private JwtUtil jwtUtils;
 
-    @Autowired
-    private StorageService storageService;
-
     @GetMapping("/me")
     public ResponseEntity<UserDTO> getUserDetails(@CookieValue(name = "accessToken") String accessToken) {
-        final String email = jwtUtils.getUserFromToken(accessToken);
-        final UserDTO user = userService.getUserDetails(email);
+        final Long userId = jwtUtils.getUserIdFromToken(accessToken);
+        final UserDTO user = userService.getUserDetails(userId);
         return ResponseEntity.ok(user);
     }
 
     @DeleteMapping("/me")
     public ResponseEntity<String> deleteUser(@CookieValue(name = "accessToken") String accessToken, @RequestBody String password) {
-        final String email = jwtUtils.getUserFromToken(accessToken);
-        if (!userService.verifyPassword(email, password)) {
+        final Long userId = jwtUtils.getUserIdFromToken(accessToken);
+        if (!userService.verifyPassword(userId, password)) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid password!");
         }
-        userService.deleteUser(email);
+        userService.deleteUser(userId);
         ResponseCookie accessCookie = ResponseCookie.from("accessToken", "").path("/").httpOnly(true).sameSite("Lax").build();
         ResponseCookie refreshCookie = ResponseCookie.from("refreshToken", "").path("/").httpOnly(true).sameSite("Lax").build();
         return ResponseEntity.ok()
@@ -63,18 +59,12 @@ public class UserController {
         @RequestPart(value="file", required=false) MultipartFile file
     )
     {
-        final String currentEmail = jwtUtils.getUserFromToken(accessToken);
-        final Long userId = userService.getUserDetails(currentEmail).getId();
-        // Check if email available
-        if (userService.existsByEmail(email)) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Email already exists!");
-        }
-        // Update profile picture
-        try{
-            storageService.uploadFile(userId, file);
+        final Long userId = jwtUtils.getUserIdFromToken(accessToken);
+        try {
+            userService.updateUserProfile(userId, email, file);
             return ResponseEntity.ok("Profile updated successfully!");
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Failed to update profile!");
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Failed to update profile!");
         }
     }
 }
