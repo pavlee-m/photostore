@@ -36,8 +36,14 @@ public class User {
     @Column(nullable=false, columnDefinition="float default 25600.0")
     private Float storage_space;
 
+    @Column(nullable=false)
+    private Float storage_used;
+
     @ManyToOne
     @JoinColumn(name = "role_id", nullable=false)
     private Role role;
+
+    @Column(nullable=false, columnDefinition="VARBINARY(512)")
+    private byte[] encrypted_key;
 
 }

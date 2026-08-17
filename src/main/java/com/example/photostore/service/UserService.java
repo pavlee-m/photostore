@@ -18,6 +18,9 @@ import com.example.photostore.exception.RoleNotFoundException;
 import com.example.photostore.exception.StorageCapacityExceededException;
 import com.example.photostore.exception.UserNotFoundException;
 import com.example.photostore.mappers.UserMapper;
+import com.example.photostore.security.Encryption;
+
+import javax.crypto.SecretKey;
 
 @Service
 @RequiredArgsConstructor
@@ -37,6 +40,9 @@ public class UserService {
     
     @Autowired
     private RefreshTokenService refreshTokenService;
+
+    @Autowired
+    private Encryption encryption;
     
     public UserDTO getUserDetails(Long userId) {
         User user = userRepository.findById(userId)
@@ -54,6 +60,13 @@ public class UserService {
 
     @Transactional
     public void saveUser(User user) {
+        if (user.getEncrypted_key() == null) {
+            SecretKey userKey = encryption.generateKey();
+            user.setEncrypted_key(encryption.encryptWithMasterKey(userKey));
+        }
+        if (user.getStorage_used() == null) {
+            user.setStorage_used(0.0f);
+        }
         userRepository.save(user);
     }
 

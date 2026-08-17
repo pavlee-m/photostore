@@ -51,7 +51,7 @@ public class AdminController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Email not available!");
         }
         Role role = roleService.findByName("ROLE_ADMIN");
-        final User newUser = new User(null, createUserRequest.getEmail(),encoder.encode(createUserRequest.getPassword()), null, 25600.0f, role);
+        final User newUser = new User(null, createUserRequest.getEmail(), encoder.encode(createUserRequest.getPassword()), null, 25600.0f, 0.0f, role, null);
         userService.saveUser(newUser);
         return ResponseEntity.status(HttpStatus.CREATED).body("Admin created successfully!");
     }
@@ -73,7 +73,7 @@ public class AdminController {
         }
         Role userRole = roleService.findByName("ROLE_USER");
         final User newUser = new User(null, createUserRequest.getEmail(), encoder.encode(createUserRequest.getPassword()), null,
-                25600.0f, userRole);
+                25600.0f, 0.0f, userRole, null);
         userService.saveUser(newUser);
         return ResponseEntity.status(HttpStatus.CREATED).body("User registered successfully!");
     }
