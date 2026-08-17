@@ -51,6 +51,13 @@ public class WebSecurityConfig {
                 .requestMatchers("/api/v1/auth/signin").permitAll()
                 .requestMatchers("/api/v1/admin/exists-admin").permitAll()
                 .requestMatchers("/api/v1/admin/create-admin").permitAll()
+                .requestMatchers(
+                        "/v3/api-docs",
+                        "/v3/api-docs.yaml",
+                        "/v3/api-docs/**",
+                        "/swagger-ui.html",
+                        "/swagger-ui/**")
+                .permitAll()
                 .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
                 .anyRequest().authenticated());
         http.addFilterBefore(authenticationTokenJwtTokenFilter(), UsernamePasswordAuthenticationFilter.class);
