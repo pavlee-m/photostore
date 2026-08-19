@@ -38,11 +38,15 @@ public class StorageService {
     @Value("${photostore.profile_pictures_directory}")
     private String profilePicturesDirectory;
 
+    @Value("${photostore.album_covers_directory}")
+    private String albumCoversDirectory;
+
     @Value("${photostore.storage_directory}")
     private String storageDirectory;
 
     @Value("${photostore.storage_max_size_mb}")
     private int storageMaxSizeMb;
+
 
     public String uploadProfilePicture(Long userId, MultipartFile file) {
         validateImageFile(file);

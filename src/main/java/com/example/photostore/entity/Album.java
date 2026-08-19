@@ -32,7 +32,13 @@ public class Album {
     private String name;
     
     @Column(nullable=false)
+    private String description;
+
+    @Column(nullable=false)
     private Instant createdAt;
+
+    @Column(nullable=true)
+    private String coverPhotoUrl;
 
     @ManyToOne
     @JoinColumn(name="user_id", nullable=false)

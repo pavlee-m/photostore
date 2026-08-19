@@ -51,4 +51,8 @@ public class MediaFile {
 
     @OneToMany(mappedBy="media")
     private List<AlbumMedia> albumMedia;
+
+    // To avoid duplicate files
+    @Column(nullable=false, unique=true)
+    private String hash;
 }
