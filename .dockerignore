@@ -1,0 +1,11 @@
+.git
+.idea
+.vscode
+.cursor
+target
+profile_pictures
+storage
+album_covers
+HELP.md
+src/test
+**/.DS_Store
