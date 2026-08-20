@@ -113,14 +113,11 @@ public class StorageService {
     }
 
     public void deleteProfilePicture(String profilePictureUrl) {
-        if (!StringUtils.hasText(profilePictureUrl)) {
-            return;
-        }
-        try {
-            Files.deleteIfExists(Paths.get(profilePictureUrl));
-        } catch (IOException e) {
-            throw new StorageOperationException("Failed to delete profile picture", e);
-        }
+        deleteFileIfPresent(profilePictureUrl, "Failed to delete profile picture");
+    }
+
+    public void deleteStoredFile(String path) {
+        deleteFileIfPresent(path, "Failed to delete media file");
     }
 
     public void deleteProfilePictureByUserId(Long userId) {
@@ -142,6 +139,17 @@ public class StorageService {
             Files.deleteIfExists(path);
         } catch (IOException e) {
             throw new StorageOperationException("Failed to delete profile picture", e);
+        }
+    }
+
+    private void deleteFileIfPresent(String path, String errorMessage) {
+        if (!StringUtils.hasText(path)) {
+            return;
+        }
+        try {
+            Files.deleteIfExists(Paths.get(path));
+        } catch (IOException e) {
+            throw new StorageOperationException(errorMessage, e);
         }
     }
 
