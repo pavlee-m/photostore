@@ -11,7 +11,6 @@ import java.util.Arrays;
 import java.util.Base64;
 
 import javax.crypto.Cipher;
-import javax.crypto.CipherInputStream;
 import javax.crypto.CipherOutputStream;
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
@@ -20,7 +19,6 @@ import javax.crypto.spec.SecretKeySpec;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-import org.springframework.web.multipart.MultipartFile;
 
 import com.example.photostore.exception.StorageOperationException;
 
@@ -52,6 +50,7 @@ public class Encryption {
         }
     }
 
+    // Used for encryption of keys with the master key
     public byte[] encryptWithMasterKey(SecretKey key) {
         return encryptBytes(key.getEncoded(), masterKey);
     }
@@ -61,19 +60,19 @@ public class Encryption {
         return new SecretKeySpec(keyBytes, "AES");
     }
 
-    public void encryptFile(MultipartFile source, Path destination, SecretKey key) {
-        try (InputStream fileIn = source.getInputStream()) {
+    public void encryptFile(Path source, Path destination, SecretKey key) {
+        try (InputStream fileIn = Files.newInputStream(source)) {
             encryptStream(fileIn, destination, key);
         } catch (IOException e) {
             throw new StorageOperationException("Failed to encrypt file", e);
         }
     }
 
-    public void encryptFile(Path source, Path destination, SecretKey key) {
-        try (InputStream fileIn = Files.newInputStream(source)) {
-            encryptStream(fileIn, destination, key);
+    public byte[] decryptFile(Path source, SecretKey key) {
+        try {
+            return decryptBytes(Files.readAllBytes(source), key);
         } catch (IOException e) {
-            throw new StorageOperationException("Failed to encrypt file", e);
+            throw new StorageOperationException("Failed to decrypt file", e);
         }
     }
 
@@ -92,25 +91,6 @@ public class Encryption {
             }
         } catch (IOException | GeneralSecurityException e) {
             throw new StorageOperationException("Failed to encrypt file", e);
-        }
-    }
-
-    public void decryptFile(MultipartFile source, Path destination, SecretKey key) {
-        try (InputStream fileIn = source.getInputStream()) {
-            byte[] iv = fileIn.readNBytes(GCM_IV_LENGTH_BYTES);
-            if (iv.length != GCM_IV_LENGTH_BYTES) {
-                throw new StorageOperationException("Failed to decrypt file: missing or truncated IV", null);
-            }
-
-            Cipher cipher = Cipher.getInstance(ALGORITHM);
-            cipher.init(Cipher.DECRYPT_MODE, key, new GCMParameterSpec(GCM_TAG_LENGTH_BITS, iv));
-
-            try (CipherInputStream cipherIn = new CipherInputStream(fileIn, cipher);
-                    OutputStream fileOut = Files.newOutputStream(destination)) {
-                cipherIn.transferTo(fileOut);
-            }
-        } catch (IOException | GeneralSecurityException e) {
-            throw new StorageOperationException("Failed to decrypt file", e);
         }
     }
 

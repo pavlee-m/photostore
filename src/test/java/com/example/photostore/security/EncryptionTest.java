@@ -10,7 +10,6 @@ import javax.crypto.SecretKey;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
-import org.springframework.mock.web.MockMultipartFile;
 
 import com.example.photostore.exception.StorageOperationException;
 
@@ -26,17 +25,14 @@ class EncryptionTest {
     @Test
     void encryptAndDecryptRoundTripRestoresOriginalBytes() throws Exception {
         byte[] original = "any file content".getBytes();
+        Path plaintext = tempDir.resolve("plain.txt");
         Path encrypted = tempDir.resolve("encrypted.bin");
-        Path decrypted = tempDir.resolve("decrypted.txt");
-
-        MockMultipartFile source = new MockMultipartFile(
-                "file", "plain.txt", "text/plain", original);
+        Files.write(plaintext, original);
 
         SecretKey key = encryption.generateKey();
-        encryption.encryptFile(source, encrypted, key);
-        encryption.decryptFile(toMultipartFile(encrypted), decrypted, key);
+        encryption.encryptFile(plaintext, encrypted, key);
 
-        assertArrayEquals(original, Files.readAllBytes(decrypted));
+        assertArrayEquals(original, encryption.decryptFile(encrypted, key));
     }
 
     @Test
@@ -44,28 +40,24 @@ class EncryptionTest {
         byte[] original = "assembled chunk contents".getBytes();
         Path plaintext = tempDir.resolve("plain.bin");
         Path encrypted = tempDir.resolve("encrypted.bin");
-        Path decrypted = tempDir.resolve("decrypted.bin");
         Files.write(plaintext, original);
 
         SecretKey key = encryption.generateKey();
         encryption.encryptFile(plaintext, encrypted, key);
-        encryption.decryptFile(toMultipartFile(encrypted), decrypted, key);
 
-        assertArrayEquals(original, Files.readAllBytes(decrypted));
+        assertArrayEquals(original, encryption.decryptFile(encrypted, key));
     }
 
     @Test
     void decryptWithWrongKeyFails() throws Exception {
+        Path plaintext = tempDir.resolve("plain.txt");
         Path encrypted = tempDir.resolve("encrypted.bin");
-        Path decrypted = tempDir.resolve("decrypted.txt");
+        Files.write(plaintext, "secret".getBytes());
 
-        MockMultipartFile source = new MockMultipartFile(
-                "file", "plain.txt", "text/plain", "secret".getBytes());
-
-        encryption.encryptFile(source, encrypted, encryption.generateKey());
+        encryption.encryptFile(plaintext, encrypted, encryption.generateKey());
 
         assertThrows(StorageOperationException.class,
-                () -> encryption.decryptFile(toMultipartFile(encrypted), decrypted, encryption.generateKey()));
+                () -> encryption.decryptFile(encrypted, encryption.generateKey()));
     }
 
     @Test
@@ -76,13 +68,5 @@ class EncryptionTest {
         SecretKey decryptedKey = encryption.decryptWithMasterKey(encryptedKey);
 
         assertArrayEquals(originalKey.getEncoded(), decryptedKey.getEncoded());
-    }
-
-    private MockMultipartFile toMultipartFile(Path path) throws Exception {
-        return new MockMultipartFile(
-                "file",
-                path.getFileName().toString(),
-                "application/octet-stream",
-                Files.readAllBytes(path));
     }
 }

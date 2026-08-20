@@ -8,6 +8,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -115,6 +116,39 @@ class MediaControllerTest {
                         .principal(authentication()))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("MEDIA_NOT_FOUND"));
+    }
+
+    @Test
+    void listMedia_returnsDtoWithoutEntityAssociations() throws Exception {
+        MediaFile media = new MediaFile();
+        media.setId(42L);
+        media.setName("photo.jpg");
+        media.setFileType("image/jpeg");
+        media.setExtension("jpg");
+        media.setSize(1024L);
+        media.setUploadedAt(java.time.Instant.parse("2026-08-20T18:00:00Z"));
+        media.setPath("/secret/storage/photo.enc");
+        media.setHash("abc123");
+        User owner = new User();
+        owner.setId(7L);
+        owner.setPassword("secret");
+        media.setUser(owner);
+        when(mediaService.findByUser_IdOrderByUploadedAtDesc(7L, 0, 12))
+                .thenReturn(java.util.List.of(media));
+
+        mockMvc.perform(get("/api/v1/media/list")
+                        .principal(authentication())
+                        .param("page", "0")
+                        .param("size", "12"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].id").value(42))
+                .andExpect(jsonPath("$[0].name").value("photo.jpg"))
+                .andExpect(jsonPath("$[0].fileType").value("image/jpeg"))
+                .andExpect(jsonPath("$[0].size").value(1024))
+                .andExpect(jsonPath("$[0].user").doesNotExist())
+                .andExpect(jsonPath("$[0].albumMedia").doesNotExist())
+                .andExpect(jsonPath("$[0].path").doesNotExist())
+                .andExpect(jsonPath("$[0].hash").doesNotExist());
     }
 
     private UsernamePasswordAuthenticationToken authentication() {

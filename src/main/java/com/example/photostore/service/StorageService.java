@@ -15,6 +15,8 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
+import javax.crypto.SecretKey;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -25,9 +27,8 @@ import com.example.photostore.entity.User;
 import com.example.photostore.exception.InvalidFileException;
 import com.example.photostore.exception.StorageCapacityExceededException;
 import com.example.photostore.exception.StorageOperationException;
-import com.example.photostore.exception.UserNotFoundException;
-import com.example.photostore.repository.UserRepository;
 import com.example.photostore.security.Encryption;
+import com.example.photostore.upload.FinalizedUpload;
 import com.example.photostore.upload.UploadSession;
 import com.example.photostore.upload.UploadStatus;
 
@@ -67,9 +68,7 @@ public class StorageService {
 
 
     private final Map<String, UploadSession> sessions = new ConcurrentHashMap<>();
-    private final MediaService mediaService;
     private final Encryption encryption;
-    private final UserRepository userRepository;
 
     public String uploadProfilePicture(Long userId, MultipartFile file) {
         validateImageFile(file);
@@ -231,14 +230,11 @@ public class StorageService {
         return true;
     }
 
-    public String finalizeUpload(String uploadId) {
+    public FinalizedUpload finalizeUpload(String uploadId, User user) {
         UploadSession session = sessions.get(uploadId);
         if (session == null) {
             throw new IllegalArgumentException("Upload not found");
         }
-
-        User user = userRepository.findById(session.getUserId())
-                .orElseThrow(() -> new UserNotFoundException("User not found with id: " + session.getUserId()));
 
         Path assembledPath = Paths.get(chunksDirectory).resolve(uploadId + ".assembled");
         Path encryptedPath = Paths.get(storageDirectory).resolve(uploadId);
@@ -265,11 +261,10 @@ public class StorageService {
         }
 
         sessions.remove(uploadId);
-        mediaService.saveFromUpload(
+        return new FinalizedUpload(
                 session,
                 encryptedPath.toString(),
                 extractFormatFromFilename(session.getFileName()));
-        return uploadId;
     }
 
     private void deleteUploadTempFiles(String uploadId, Path assembledPath) {
@@ -316,5 +311,10 @@ public class StorageService {
             return "video/" + extension;
         }
         return null;
+    }
+
+    public byte[] decryptFile(Path source, User user) {
+        SecretKey key = encryption.decryptWithMasterKey(user.getEncryption_key());
+        return encryption.decryptFile(source, key);
     }
 }

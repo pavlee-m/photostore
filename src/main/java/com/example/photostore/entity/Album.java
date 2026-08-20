@@ -14,7 +14,9 @@ import jakarta.persistence.Table;
 import jakarta.persistence.OneToMany;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
 
 
 @Entity
@@ -40,10 +42,14 @@ public class Album {
     @Column(nullable=true)
     private String coverPhotoUrl;
 
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     @ManyToOne
     @JoinColumn(name="user_id", nullable=false)
     private User user;
 
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     @OneToMany(mappedBy="album")
     private List<AlbumMedia> albumMedia;
 

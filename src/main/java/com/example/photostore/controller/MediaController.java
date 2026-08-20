@@ -1,6 +1,11 @@
 package com.example.photostore.controller;
 
+import java.nio.file.Paths;
+import java.util.List;
+
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -12,11 +17,13 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.example.photostore.dtos.MediaFileDTO;
 import com.example.photostore.entity.MediaFile;
 import com.example.photostore.entity.User;
 import com.example.photostore.service.MediaService;
 import com.example.photostore.service.StorageService;
 import com.example.photostore.service.UserService;
+import com.example.photostore.upload.FinalizedUpload;
 import com.example.photostore.upload.UploadInitResponse;
 import com.example.photostore.upload.UploadStatus;
 
@@ -57,6 +64,7 @@ public class MediaController {
     @PostMapping("/upload-chunk")
     public ResponseEntity<String> uploadChunk
     (
+        Authentication authentication,
         @RequestParam String uploadId,
         @RequestParam int chunkIndex,
         @RequestParam("chunk") MultipartFile chunk
@@ -64,8 +72,11 @@ public class MediaController {
     {
         Boolean isComplete = storageService.processChunk(uploadId, chunkIndex, chunk);
         if (isComplete) {
-            String fileId = storageService.finalizeUpload(uploadId);
-            return ResponseEntity.ok(fileId);
+            final Long userId = Long.parseLong(authentication.getName());
+            User user = userService.findById(userId);
+            FinalizedUpload finalized = storageService.finalizeUpload(uploadId, user);
+            mediaService.saveFromUpload(finalized.session(), finalized.storedPath(), finalized.extension());
+            return ResponseEntity.ok(uploadId);
         }
         return ResponseEntity.ok("Chunk uploaded successfully");
     }
@@ -87,4 +98,21 @@ public class MediaController {
         return ResponseEntity.ok("Media deleted successfully!");
     }
 
+    @GetMapping("/list")
+    public ResponseEntity<List<MediaFileDTO>> listMedia(Authentication authentication, @RequestParam int page, @RequestParam int size) {
+        final Long userId = Long.parseLong(authentication.getName());
+        List<MediaFileDTO> media = mediaService.findByUser_IdOrderByUploadedAtDesc(userId, page, size)
+                .stream()
+                .map(MediaFileDTO::from)
+                .toList();
+        return ResponseEntity.ok(media);
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<byte[]> getMedia(Authentication authentication, @PathVariable Long id) {
+        final Long userId = Long.parseLong(authentication.getName());
+        MediaFile media = mediaService.findById(id, userId);
+        byte[] decrypted = storageService.decryptFile(Paths.get(media.getPath()), media.getUser());
+        return ResponseEntity.ok().contentType(MediaType.parseMediaType(media.getFileType())).header(HttpHeaders.CACHE_CONTROL, "no-store").body(decrypted);
+    }
 }

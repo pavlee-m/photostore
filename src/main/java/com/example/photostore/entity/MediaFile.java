@@ -14,7 +14,9 @@ import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
 
 @Entity
 @Data
@@ -45,10 +47,14 @@ public class MediaFile {
     @Column(nullable=false)
     private Instant uploadedAt;
 
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     @ManyToOne
     @JoinColumn(name="user_id", nullable=false)
     private User user;
 
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
     @OneToMany(mappedBy="media")
     private List<AlbumMedia> albumMedia;
 

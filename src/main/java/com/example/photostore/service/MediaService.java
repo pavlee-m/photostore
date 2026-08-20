@@ -1,8 +1,11 @@
 package com.example.photostore.service;
 
 import java.time.Instant;
+import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -75,5 +78,19 @@ public class MediaService {
 
     public MediaFile findByHashAndUser_Id(String hash, Long userId) {
         return mediaFileRepository.findByHashAndUser_Id(hash, userId);
+    }
+
+    public List<MediaFile> findByUser_IdOrderByUploadedAtDesc(Long userId, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        return mediaFileRepository.findByUser_IdOrderByUploadedAtDesc(userId, pageable);
+    }
+
+    public MediaFile findById(Long id, Long userId) {
+        MediaFile mediaFile = mediaFileRepository.findById(id)
+                .orElseThrow(() -> new MediaFileNotFoundException(id));
+        if (!mediaFile.getUser().getId().equals(userId)) {
+            throw new MediaFileNotFoundException(id);
+        }
+        return mediaFile;
     }
 }
