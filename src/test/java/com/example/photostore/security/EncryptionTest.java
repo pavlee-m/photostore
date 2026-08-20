@@ -40,6 +40,21 @@ class EncryptionTest {
     }
 
     @Test
+    void encryptPathRoundTripRestoresOriginalBytes() throws Exception {
+        byte[] original = "assembled chunk contents".getBytes();
+        Path plaintext = tempDir.resolve("plain.bin");
+        Path encrypted = tempDir.resolve("encrypted.bin");
+        Path decrypted = tempDir.resolve("decrypted.bin");
+        Files.write(plaintext, original);
+
+        SecretKey key = encryption.generateKey();
+        encryption.encryptFile(plaintext, encrypted, key);
+        encryption.decryptFile(toMultipartFile(encrypted), decrypted, key);
+
+        assertArrayEquals(original, Files.readAllBytes(decrypted));
+    }
+
+    @Test
     void decryptWithWrongKeyFails() throws Exception {
         Path encrypted = tempDir.resolve("encrypted.bin");
         Path decrypted = tempDir.resolve("decrypted.txt");

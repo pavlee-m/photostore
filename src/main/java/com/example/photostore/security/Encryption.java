@@ -62,6 +62,22 @@ public class Encryption {
     }
 
     public void encryptFile(MultipartFile source, Path destination, SecretKey key) {
+        try (InputStream fileIn = source.getInputStream()) {
+            encryptStream(fileIn, destination, key);
+        } catch (IOException e) {
+            throw new StorageOperationException("Failed to encrypt file", e);
+        }
+    }
+
+    public void encryptFile(Path source, Path destination, SecretKey key) {
+        try (InputStream fileIn = Files.newInputStream(source)) {
+            encryptStream(fileIn, destination, key);
+        } catch (IOException e) {
+            throw new StorageOperationException("Failed to encrypt file", e);
+        }
+    }
+
+    private void encryptStream(InputStream source, Path destination, SecretKey key) {
         try {
             byte[] iv = new byte[GCM_IV_LENGTH_BYTES];
             SecureRandom.getInstanceStrong().nextBytes(iv);
@@ -70,10 +86,9 @@ public class Encryption {
             cipher.init(Cipher.ENCRYPT_MODE, key, new GCMParameterSpec(GCM_TAG_LENGTH_BITS, iv));
 
             try (OutputStream fileOut = Files.newOutputStream(destination);
-                    CipherOutputStream cipherOut = new CipherOutputStream(fileOut, cipher);
-                    InputStream fileIn = source.getInputStream()) {
+                    CipherOutputStream cipherOut = new CipherOutputStream(fileOut, cipher)) {
                 fileOut.write(iv);
-                fileIn.transferTo(cipherOut);
+                source.transferTo(cipherOut);
             }
         } catch (IOException | GeneralSecurityException e) {
             throw new StorageOperationException("Failed to encrypt file", e);

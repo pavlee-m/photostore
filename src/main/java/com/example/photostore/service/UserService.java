@@ -58,11 +58,17 @@ public class UserService {
         return user;
     }
 
+    public User findById(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new UserNotFoundException("User not found with id: " + userId));
+        return user;
+    }
+
     @Transactional
     public void saveUser(User user) {
-        if (user.getEncrypted_key() == null) {
+        if (user.getEncryption_key() == null) {
             SecretKey userKey = encryption.generateKey();
-            user.setEncrypted_key(encryption.encryptWithMasterKey(userKey));
+            user.setEncryption_key(encryption.encryptWithMasterKey(userKey));
         }
         if (user.getStorage_used() == null) {
             user.setStorage_used(0.0f);

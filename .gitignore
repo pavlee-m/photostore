@@ -35,3 +35,6 @@ build/
 profile_pictures/
 storage/
 album_covers/
+chunks/
+
+test-client/

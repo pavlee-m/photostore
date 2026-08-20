@@ -189,4 +189,11 @@ class RouteSecurityIntegrationTest {
                         .with(user("user@example.com").roles("USER")))
                 .andExpect(status().isForbidden());
     }
+
+    @Test
+    @Order(15)
+    void deleteMedia_requiresAuthentication() throws Exception {
+        mockMvc.perform(delete("/api/v1/media/1"))
+                .andExpect(status().isUnauthorized());
+    }
 }

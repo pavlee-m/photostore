@@ -44,6 +44,6 @@ public class User {
     private Role role;
 
     @Column(nullable=false, columnDefinition="VARBINARY(512)")
-    private byte[] encrypted_key;
+    private byte[] encryption_key;
 
 }

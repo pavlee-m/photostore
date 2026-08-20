@@ -22,7 +22,7 @@ WORKDIR /app
 
 RUN groupadd --system --gid 1000 photostore \
     && useradd --system --uid 1000 --gid photostore --home-dir /app --shell /usr/sbin/nologin photostore \
-    && mkdir -p /app/profile_pictures /app/storage /app/album_covers \
+    && mkdir -p /app/profile_pictures /app/storage /app/album_covers /app/chunks \
     && chown -R photostore:photostore /app
 
 COPY --from=build --chown=photostore:photostore /src/target/photostore-0.0.1-SNAPSHOT.jar /app/app.jar

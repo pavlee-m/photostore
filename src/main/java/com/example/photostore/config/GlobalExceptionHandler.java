@@ -17,6 +17,7 @@ import com.example.photostore.exception.EmailAlreadyExistsException;
 import com.example.photostore.exception.ErrorResponse;
 import com.example.photostore.exception.InvalidFileException;
 import com.example.photostore.exception.InvalidPasswordException;
+import com.example.photostore.exception.MediaFileNotFoundException;
 import com.example.photostore.exception.RoleNotFoundException;
 import com.example.photostore.exception.StorageCapacityExceededException;
 import com.example.photostore.exception.StorageOperationException;
@@ -30,6 +31,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(UserNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleUserNotFound(UserNotFoundException exception) {
         return error(HttpStatus.NOT_FOUND, "USER_NOT_FOUND", exception.getMessage());
+    }
+
+    @ExceptionHandler(MediaFileNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleMediaFileNotFound(MediaFileNotFoundException exception) {
+        return error(HttpStatus.NOT_FOUND, "MEDIA_NOT_FOUND", exception.getMessage());
     }
 
     @ExceptionHandler(RoleNotFoundException.class)
