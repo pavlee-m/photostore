@@ -10,13 +10,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.example.photostore.entity.MediaFile;
+import com.example.photostore.entity.UploadSession;
 import com.example.photostore.entity.User;
 import com.example.photostore.exception.MediaFileNotFoundException;
-import com.example.photostore.exception.UserNotFoundException;
 import com.example.photostore.repository.AlbumMediaRepository;
 import com.example.photostore.repository.MediaFileRepository;
 import com.example.photostore.repository.UserRepository;
-import com.example.photostore.upload.UploadSession;
 
 import lombok.RequiredArgsConstructor;
 
@@ -37,8 +36,7 @@ public class MediaService {
 
     @Transactional
     public MediaFile saveFromUpload(UploadSession session, String path, String extension) {
-        User user = userRepository.findById(session.getUserId())
-                .orElseThrow(() -> new UserNotFoundException("User not found with id: " + session.getUserId()));
+        User user = session.getUser();
 
         MediaFile mediaFile = new MediaFile();
         mediaFile.setName(session.getFileName());

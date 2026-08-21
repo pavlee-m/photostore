@@ -7,13 +7,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
-import java.time.Instant;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 
 import javax.crypto.SecretKey;
 
@@ -23,13 +18,13 @@ import org.springframework.util.StringUtils;
 import org.springframework.util.unit.DataSize;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.example.photostore.entity.UploadSession;
 import com.example.photostore.entity.User;
 import com.example.photostore.exception.InvalidFileException;
 import com.example.photostore.exception.StorageCapacityExceededException;
 import com.example.photostore.exception.StorageOperationException;
 import com.example.photostore.security.Encryption;
 import com.example.photostore.upload.FinalizedUpload;
-import com.example.photostore.upload.UploadSession;
 import com.example.photostore.upload.UploadStatus;
 
 import lombok.RequiredArgsConstructor;
@@ -67,8 +62,8 @@ public class StorageService {
     private int storageMaxSizeMb;
 
 
-    private final Map<String, UploadSession> sessions = new ConcurrentHashMap<>();
     private final Encryption encryption;
+    private final UploadSessionService uploadSessionService;
 
     public String uploadProfilePicture(Long userId, MultipartFile file) {
         validateImageFile(file);
@@ -188,27 +183,12 @@ public class StorageService {
         if (fileExtension.isEmpty() || fileType == null) {
             throw new InvalidFileException("File type is not allowed");
         }
-        Boolean[] receivedChunks = new Boolean[totalChunks];
-        Arrays.fill(receivedChunks, false);
-        UploadSession session = UploadSession.builder()
-                .userId(user.getId())
-                .fileName(filename)
-                .fileType(fileType)
-                .hash(fileHash)
-                .totalSize(totalSize)
-                .totalChunks(totalChunks)
-                .receivedChunks(receivedChunks)
-                .createdAt(Instant.now())
-                .build();
-        sessions.put(uploadId, session);
+        uploadSessionService.create(uploadId, user, filename, fileType, fileHash, totalSize, totalChunks);
         return uploadId;
     }
 
     public Boolean processChunk(String uploadId, int chunkIndex, MultipartFile chunk) {
-        UploadSession session = sessions.get(uploadId);
-        if (session == null) {
-            throw new IllegalArgumentException("Upload not found");
-        }
+        UploadSession session = uploadSessionService.getRequired(uploadId);
         if (chunkIndex < 0 || chunkIndex >= session.getTotalChunks()) {
             throw new IllegalArgumentException("Invalid chunk index");
         }
@@ -221,20 +201,12 @@ public class StorageService {
         } catch (IOException e) {
             throw new StorageOperationException("Failed to store chunk", e);
         }
-        session.getReceivedChunks()[chunkIndex] = true;
-        for (Boolean received : session.getReceivedChunks()) {
-            if (!Boolean.TRUE.equals(received)) {
-                return false;
-            }
-        }
-        return true;
+        return uploadSessionService.markChunkReceived(uploadId, chunkIndex);
     }
 
     public FinalizedUpload finalizeUpload(String uploadId, User user) {
-        UploadSession session = sessions.get(uploadId);
-        if (session == null) {
-            throw new IllegalArgumentException("Upload not found");
-        }
+        UploadSession session = uploadSessionService.getRequired(uploadId);
+        int totalChunks = session.getTotalChunks();
 
         Path assembledPath = Paths.get(chunksDirectory).resolve(uploadId + ".assembled");
         Path encryptedPath = Paths.get(storageDirectory).resolve(uploadId);
@@ -242,7 +214,7 @@ public class StorageService {
             Files.createDirectories(Paths.get(storageDirectory));
             Files.createDirectories(Paths.get(chunksDirectory));
             try (OutputStream out = Files.newOutputStream(assembledPath)) {
-                for (int i = 0; i < session.getTotalChunks(); i++) {
+                for (int i = 0; i < totalChunks; i++) {
                     Path chunkPath = chunkPath(uploadId, i);
                     if (!Files.exists(chunkPath)) {
                         throw new IllegalArgumentException("Missing chunk " + i);
@@ -257,21 +229,24 @@ public class StorageService {
         } catch (IOException e) {
             throw new StorageOperationException("Failed to finalize upload", e);
         } finally {
-            deleteUploadTempFiles(uploadId, assembledPath);
+            deleteUploadTempFiles(uploadId, assembledPath, totalChunks);
         }
 
-        sessions.remove(uploadId);
+        uploadSessionService.delete(uploadId);
         return new FinalizedUpload(
                 session,
                 encryptedPath.toString(),
                 extractFormatFromFilename(session.getFileName()));
     }
 
-    private void deleteUploadTempFiles(String uploadId, Path assembledPath) {
+    public void deleteSessionFiles(String uploadId, int totalChunks) {
+        Path assembledPath = Paths.get(chunksDirectory).resolve(uploadId + ".assembled");
+        deleteUploadTempFiles(uploadId, assembledPath, totalChunks);
+    }
+
+    private void deleteUploadTempFiles(String uploadId, Path assembledPath, int totalChunks) {
         try {
             Files.deleteIfExists(assembledPath);
-            UploadSession session = sessions.get(uploadId);
-            int totalChunks = session != null ? session.getTotalChunks() : 0;
             for (int i = 0; i < totalChunks; i++) {
                 Files.deleteIfExists(chunkPath(uploadId, i));
             }
@@ -281,22 +256,9 @@ public class StorageService {
     }
 
     public UploadStatus getUploadStatus(String uploadId) {
-        UploadSession session = sessions.get(uploadId);
-        if (session == null) {
-            return null;
-        }
-        else {
-            List<Integer> missing = new ArrayList<>();
-            for (int i = 0; i < session.getTotalChunks(); i++) {
-                if (!Boolean.TRUE.equals(session.getReceivedChunks()[i])) {
-                    missing.add(i);
-                }
-            }
-            return UploadStatus.builder()
-                    .totalChunks(session.getTotalChunks())
-                    .missing(missing)
-                    .build();
-        }
+        return uploadSessionService.find(uploadId)
+                .map(uploadSessionService::toStatus)
+                .orElse(null);
     }
 
     private Path chunkPath(String uploadId, int chunkIndex) {
