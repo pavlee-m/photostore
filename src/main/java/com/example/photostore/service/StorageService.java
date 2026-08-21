@@ -13,6 +13,7 @@ import java.util.UUID;
 import javax.crypto.SecretKey;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.util.unit.DataSize;
@@ -154,6 +155,7 @@ public class StorageService {
     public void createFolders() {
         try {
             Files.createDirectories(Paths.get(profilePicturesDirectory));
+            Files.createDirectories(Paths.get(albumCoversDirectory));
             Files.createDirectories(Paths.get(storageDirectory));
             Files.createDirectories(Paths.get(chunksDirectory));
         } catch (IOException e) {
@@ -278,5 +280,46 @@ public class StorageService {
     public byte[] decryptFile(Path source, User user) {
         SecretKey key = encryption.decryptWithMasterKey(user.getEncryption_key());
         return encryption.decryptFile(source, key);
+    }
+
+    public String uploadAlbumCover(Long albumId, User user, MultipartFile file) {
+        validateImageFile(file);
+        String extension = extractFormatFromMimeType(file.getContentType());
+        String fileName = albumId + "_" + user.getId() + "." + extension;
+        Path destination = Paths.get(albumCoversDirectory, fileName);
+        Path tempPath = Paths.get(albumCoversDirectory, fileName + ".tmp");
+        try {
+            Files.createDirectories(Paths.get(albumCoversDirectory));
+            Files.copy(file.getInputStream(), tempPath, StandardCopyOption.REPLACE_EXISTING);
+            encryption.encryptFile(
+                    tempPath,
+                    destination,
+                    encryption.decryptWithMasterKey(user.getEncryption_key()));
+            return fileName;
+        } catch (IOException e) {
+            throw new StorageOperationException("Failed to upload album cover", e);
+        } finally {
+            try {
+                Files.deleteIfExists(tempPath);
+            } catch (IOException e) {
+                throw new StorageOperationException("Failed to clean up album cover temp file", e);
+            }
+        }
+    }
+
+    public void deleteAlbumCover(String fileName) {
+        if (!StringUtils.hasText(fileName)) {
+            return;
+        }
+        deleteFileIfPresent(Paths.get(albumCoversDirectory, fileName).toString(), "Failed to delete album cover");
+    }
+
+    public byte[] decryptAlbumCover(String fileName, User user) {
+        return decryptFile(Paths.get(albumCoversDirectory, fileName), user);
+    }
+
+    public String imageContentTypeFromFileName(String fileName) {
+        String contentType = fileTypeFromExtension(extractFormatFromFilename(fileName));
+        return contentType != null ? contentType : MediaType.APPLICATION_OCTET_STREAM_VALUE;
     }
 }

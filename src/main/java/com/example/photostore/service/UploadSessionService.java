@@ -89,6 +89,17 @@ public class UploadSessionService {
         return uploadSessionRepository.findByCreatedAtBefore(cutoff);
     }
 
+    public List<UploadSession> findByUserId(Long userId) {
+        return uploadSessionRepository.findByUser_Id(userId);
+    }
+
+    @Transactional
+    public void deleteAllForUser(Long userId) {
+        for (UploadSession session : findByUserId(userId)) {
+            delete(session.getUploadId());
+        }
+    }
+
     public UploadStatus toStatus(UploadSession session) {
         Set<Integer> received = new HashSet<>();
         for (UploadChunk chunk : uploadChunkRepository.findByIdUploadId(session.getUploadId())) {

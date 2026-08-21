@@ -74,6 +74,16 @@ public class MediaService {
         storageService.deleteStoredFile(path);
     }
 
+    @Transactional
+    public void deleteAllForUser(Long userId) {
+        for (MediaFile mediaFile : mediaFileRepository.findByUser_Id(userId)) {
+            albumMediaRepository.deleteByMedia_Id(mediaFile.getId());
+            String path = mediaFile.getPath();
+            mediaFileRepository.delete(mediaFile);
+            storageService.deleteStoredFile(path);
+        }
+    }
+
     public MediaFile findByHashAndUser_Id(String hash, Long userId) {
         return mediaFileRepository.findByHashAndUser_Id(hash, userId);
     }

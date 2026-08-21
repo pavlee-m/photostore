@@ -26,6 +26,22 @@ class GlobalExceptionHandlerTest {
     }
 
     @Test
+    void mapsAlbumNotFoundToNotFoundResponse() throws Exception {
+        mockMvc.perform(get("/test/album"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("ALBUM_NOT_FOUND"))
+                .andExpect(jsonPath("$.status").value(404));
+    }
+
+    @Test
+    void mapsMediaAlreadyInAlbumToConflictResponse() throws Exception {
+        mockMvc.perform(get("/test/album-media"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("MEDIA_ALREADY_IN_ALBUM"))
+                .andExpect(jsonPath("$.status").value(409));
+    }
+
+    @Test
     void mapsEmailAlreadyExistsToConflictResponse() throws Exception {
         mockMvc.perform(get("/test/email"))
                 .andExpect(status().isConflict())
@@ -53,6 +69,16 @@ class GlobalExceptionHandlerTest {
 
     @RestController
     static class FailingController {
+        @GetMapping("/test/album")
+        void album() {
+            throw new AlbumNotFoundException(3L);
+        }
+
+        @GetMapping("/test/album-media")
+        void albumMedia() {
+            throw new MediaAlreadyInAlbumException(3L, 42L);
+        }
+
         @GetMapping("/test/email")
         void email() {
             throw new EmailAlreadyExistsException();

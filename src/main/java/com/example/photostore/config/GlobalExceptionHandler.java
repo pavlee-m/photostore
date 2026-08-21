@@ -13,10 +13,13 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.servlet.NoHandlerFoundException;
 
+import com.example.photostore.exception.AlbumCoverNotFoundException;
+import com.example.photostore.exception.AlbumNotFoundException;
 import com.example.photostore.exception.EmailAlreadyExistsException;
 import com.example.photostore.exception.ErrorResponse;
 import com.example.photostore.exception.InvalidFileException;
 import com.example.photostore.exception.InvalidPasswordException;
+import com.example.photostore.exception.MediaAlreadyInAlbumException;
 import com.example.photostore.exception.MediaFileNotFoundException;
 import com.example.photostore.exception.RoleNotFoundException;
 import com.example.photostore.exception.StorageCapacityExceededException;
@@ -36,6 +39,21 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(MediaFileNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleMediaFileNotFound(MediaFileNotFoundException exception) {
         return error(HttpStatus.NOT_FOUND, "MEDIA_NOT_FOUND", exception.getMessage());
+    }
+
+    @ExceptionHandler(AlbumNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleAlbumNotFound(AlbumNotFoundException exception) {
+        return error(HttpStatus.NOT_FOUND, "ALBUM_NOT_FOUND", exception.getMessage());
+    }
+
+    @ExceptionHandler(AlbumCoverNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleAlbumCoverNotFound(AlbumCoverNotFoundException exception) {
+        return error(HttpStatus.NOT_FOUND, "ALBUM_COVER_NOT_FOUND", exception.getMessage());
+    }
+
+    @ExceptionHandler(MediaAlreadyInAlbumException.class)
+    public ResponseEntity<ErrorResponse> handleMediaAlreadyInAlbum(MediaAlreadyInAlbumException exception) {
+        return error(HttpStatus.CONFLICT, "MEDIA_ALREADY_IN_ALBUM", exception.getMessage());
     }
 
     @ExceptionHandler(RoleNotFoundException.class)

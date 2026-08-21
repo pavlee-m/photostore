@@ -39,6 +39,7 @@ public class Album {
     @Column(nullable=false)
     private Instant createdAt;
 
+    // Encrypted cover filename: {albumId}_{userId}.{ext}
     @Column(nullable=true)
     private String coverPhotoUrl;
 

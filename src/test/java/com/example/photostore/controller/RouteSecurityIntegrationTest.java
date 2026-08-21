@@ -196,4 +196,12 @@ class RouteSecurityIntegrationTest {
         mockMvc.perform(delete("/api/v1/media/1"))
                 .andExpect(status().isUnauthorized());
     }
+
+    @Test
+    @Order(16)
+    void createAlbum_requiresAuthentication() throws Exception {
+        mockMvc.perform(multipart("/api/v1/albums")
+                        .param("name", "Vacation"))
+                .andExpect(status().isUnauthorized());
+    }
 }

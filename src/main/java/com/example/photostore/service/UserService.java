@@ -43,6 +43,15 @@ public class UserService {
 
     @Autowired
     private Encryption encryption;
+
+    @Autowired
+    private AlbumService albumService;
+
+    @Autowired
+    private MediaService mediaService;
+
+    @Autowired
+    private UploadSessionService uploadSessionService;
     
     public UserDTO getUserDetails(Long userId) {
         User user = userRepository.findById(userId)
@@ -86,8 +95,14 @@ public class UserService {
 
     @Transactional
     public void deleteUser(Long userId) {
-        refreshTokenService.deleteAllTokensByUserId(userId);
         userRepository.findById(userId).orElseThrow(() -> new UserNotFoundException("User not found with id: " + userId));
+        for (var session : uploadSessionService.findByUserId(userId)) {
+            storageService.deleteSessionFiles(session.getUploadId(), session.getTotalChunks());
+        }
+        uploadSessionService.deleteAllForUser(userId);
+        albumService.deleteAllForUser(userId);
+        mediaService.deleteAllForUser(userId);
+        refreshTokenService.deleteAllTokensByUserId(userId);
         userRepository.deleteById(userId);
         storageService.deleteProfilePictureByUserId(userId);
     }
