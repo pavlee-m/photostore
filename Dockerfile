@@ -1,6 +1,8 @@
-# Build:  docker build -t photostore .
-# Run against SQL Server on the host:
-#   docker run --rm -p 8080:8080 \
+# Preferred:  docker compose up --build
+#
+# Standalone against SQL Server on the host:
+#   docker build -t photostore .
+#   docker run --rm -p 8080:8080 --env-file .env \
 #     --add-host=host.docker.internal:host-gateway \
 #     -v photostore-storage:/app/storage \
 #     -v photostore-profiles:/app/profile_pictures \

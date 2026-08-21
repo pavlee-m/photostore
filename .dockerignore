@@ -6,6 +6,9 @@ target
 profile_pictures
 storage
 album_covers
+chunks
+.env
+.env.*
 HELP.md
 src/test
 **/.DS_Store
