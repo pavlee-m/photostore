@@ -22,17 +22,6 @@ export function formatDateHeading(dateKey: string) {
 	}
 	const [year, month, day] = dateKey.split("-").map(Number);
 	const date = new Date(year, (month ?? 1) - 1, day ?? 1);
-	const todayKey = localDateKeyFromDate(new Date());
-	const yesterday = new Date();
-	yesterday.setDate(yesterday.getDate() - 1);
-	const yesterdayKey = localDateKeyFromDate(yesterday);
-
-	if (dateKey === todayKey) {
-		return "Today";
-	}
-	if (dateKey === yesterdayKey) {
-		return "Yesterday";
-	}
 	return new Intl.DateTimeFormat(undefined, {
 		weekday: "long",
 		month: "long",
