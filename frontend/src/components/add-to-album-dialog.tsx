@@ -1,4 +1,5 @@
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { addMediaToAlbum, listAlbums } from "#/api/album.ts";
 import { AlbumCover } from "#/components/album-cover.tsx";
 import { Button } from "#/components/ui/button.tsx";
@@ -20,6 +21,7 @@ export function AddToAlbumDialog({
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
 }) {
+	const queryClient = useQueryClient();
 	const albumsQuery = useQuery({
 		queryKey: ["albums"],
 		queryFn: listAlbums,
@@ -28,8 +30,12 @@ export function AddToAlbumDialog({
 	const addMutation = useMutation({
 		mutationFn: ({ albumId, mediaId }: { albumId: number; mediaId: number }) =>
 			addMediaToAlbum(albumId, mediaId),
-		onSuccess: () => {
+		onSuccess: async (_, { albumId }) => {
+			await queryClient.invalidateQueries({
+				queryKey: ["album-media", albumId],
+			});
 			onOpenChange(false);
+			toast.success("Photo added to album.");
 		},
 	});
 

@@ -1,33 +1,19 @@
-import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { deleteMedia, listMedia } from "#/api/media.ts";
-import { getCurrentUser } from "#/api/user.ts";
+import { listMedia } from "#/api/media.ts";
 import { AddToAlbumDialog } from "#/components/add-to-album-dialog.tsx";
+import { DeleteMediaDialog } from "#/components/delete-media-dialog.tsx";
 import { MediaThumb } from "#/components/media-thumb.tsx";
 import { MediaViewer } from "#/components/media-viewer.tsx";
-import { Button } from "#/components/ui/button.tsx";
-import {
-	Dialog,
-	DialogContent,
-	DialogDescription,
-	DialogFooter,
-	DialogHeader,
-	DialogTitle,
-} from "#/components/ui/dialog.tsx";
-import { forgetMediaObjectUrl } from "#/hooks/use-media-object-url.ts";
-import { toastApiError } from "#/lib/api-error.ts";
 import { groupMediaByDate } from "#/lib/dates.ts";
-import { useAuthStore } from "#/stores/auth.ts";
 import type { MediaFile } from "#/types/media.ts";
 
 const PAGE_SIZE = 24;
 
 export function PhotosLibrary() {
-	const queryClient = useQueryClient();
 	const [selected, setSelected] = useState<MediaFile | null>(null);
 	const [deleting, setDeleting] = useState<MediaFile | null>(null);
 	const [albumTarget, setAlbumTarget] = useState<MediaFile | null>(null);
-	const [deletingBusy, setDeletingBusy] = useState(false);
 	const sentinelRef = useRef<HTMLDivElement>(null);
 	const mediaQuery = useInfiniteQuery({
 		queryKey: ["media-list"],
@@ -64,30 +50,6 @@ export function PhotosLibrary() {
 		mediaQuery.hasNextPage,
 		mediaQuery.isFetchingNextPage,
 	]);
-
-	async function handleDelete() {
-		if (!deleting) {
-			return;
-		}
-		setDeletingBusy(true);
-		try {
-			await deleteMedia(deleting.id);
-			forgetMediaObjectUrl(deleting.id);
-			if (selected?.id === deleting.id) {
-				setSelected(null);
-			}
-			setDeleting(null);
-			await queryClient.invalidateQueries({ queryKey: ["media-list"] });
-			const user = await getCurrentUser();
-			if (user) {
-				useAuthStore.getState().setUser(user);
-			}
-		} catch (error) {
-			toastApiError(error, "Could not delete this photo.");
-		} finally {
-			setDeletingBusy(false);
-		}
-	}
 
 	if (mediaQuery.isLoading) {
 		return (
@@ -147,7 +109,12 @@ export function PhotosLibrary() {
 				</p>
 			) : null}
 			{selected ? (
-				<MediaViewer media={selected} onClose={() => setSelected(null)} />
+				<MediaViewer
+					media={selected}
+					onAddToAlbum={setAlbumTarget}
+					onClose={() => setSelected(null)}
+					onDelete={setDeleting}
+				/>
 			) : null}
 			<AddToAlbumDialog
 				media={albumTarget}
@@ -158,39 +125,19 @@ export function PhotosLibrary() {
 				}}
 				open={albumTarget !== null}
 			/>
-			<Dialog
+			<DeleteMediaDialog
+				media={deleting}
+				onDeleted={(media) => {
+					if (selected?.id === media.id) {
+						setSelected(null);
+					}
+				}}
 				onOpenChange={(open) => {
 					if (!open) {
 						setDeleting(null);
 					}
 				}}
-				open={deleting !== null}
-			>
-				<DialogContent>
-					<DialogHeader>
-						<DialogTitle>Delete photo</DialogTitle>
-						<DialogDescription>
-							Delete {deleting?.name}? This cannot be undone.
-						</DialogDescription>
-					</DialogHeader>
-					<DialogFooter>
-						<Button
-							onClick={() => setDeleting(null)}
-							type="button"
-							variant="outline"
-						>
-							Cancel
-						</Button>
-						<Button
-							disabled={deletingBusy}
-							onClick={() => void handleDelete()}
-							variant="destructive"
-						>
-							Delete
-						</Button>
-					</DialogFooter>
-				</DialogContent>
-			</Dialog>
+			/>
 		</main>
 	);
 }

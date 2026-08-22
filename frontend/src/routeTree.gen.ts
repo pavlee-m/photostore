@@ -16,6 +16,7 @@ import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedAlbumsRouteImport } from './routes/_authenticated/albums'
 import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
+import { Route as AuthenticatedAlbumsAlbumIdRouteImport } from './routes/_authenticated/albums_.$albumId'
 
 const AuthenticatedRoute = AuthenticatedRouteImport.update({
   id: '/_authenticated',
@@ -51,6 +52,12 @@ const AuthenticatedProfileRoute = AuthenticatedProfileRouteImport.update({
   path: '/profile',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedAlbumsAlbumIdRoute =
+  AuthenticatedAlbumsAlbumIdRouteImport.update({
+    id: '/albums_/$albumId',
+    path: '/albums/$albumId',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
@@ -59,6 +66,7 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AuthenticatedAdminRoute
   '/albums': typeof AuthenticatedAlbumsRoute
   '/profile': typeof AuthenticatedProfileRoute
+  '/albums/$albumId': typeof AuthenticatedAlbumsAlbumIdRoute
 }
 export interface FileRoutesByTo {
   '/setup': typeof SetupRoute
@@ -67,6 +75,7 @@ export interface FileRoutesByTo {
   '/albums': typeof AuthenticatedAlbumsRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/': typeof AuthenticatedIndexRoute
+  '/albums/$albumId': typeof AuthenticatedAlbumsAlbumIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -77,12 +86,27 @@ export interface FileRoutesById {
   '/_authenticated/albums': typeof AuthenticatedAlbumsRoute
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
+  '/_authenticated/albums_/$albumId': typeof AuthenticatedAlbumsAlbumIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/setup' | '/signin' | '/admin' | '/albums' | '/profile'
+  fullPaths:
+    | '/'
+    | '/setup'
+    | '/signin'
+    | '/admin'
+    | '/albums'
+    | '/profile'
+    | '/albums/$albumId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/setup' | '/signin' | '/admin' | '/albums' | '/profile' | '/'
+  to:
+    | '/setup'
+    | '/signin'
+    | '/admin'
+    | '/albums'
+    | '/profile'
+    | '/'
+    | '/albums/$albumId'
   id:
     | '__root__'
     | '/_authenticated'
@@ -92,6 +116,7 @@ export interface FileRouteTypes {
     | '/_authenticated/albums'
     | '/_authenticated/profile'
     | '/_authenticated/'
+    | '/_authenticated/albums_/$albumId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -151,6 +176,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedProfileRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/albums_/$albumId': {
+      id: '/_authenticated/albums_/$albumId'
+      path: '/albums/$albumId'
+      fullPath: '/albums/$albumId'
+      preLoaderRoute: typeof AuthenticatedAlbumsAlbumIdRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
   }
 }
 
@@ -159,6 +191,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedAlbumsRoute: typeof AuthenticatedAlbumsRoute
   AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
+  AuthenticatedAlbumsAlbumIdRoute: typeof AuthenticatedAlbumsAlbumIdRoute
 }
 
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
@@ -166,6 +199,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedAlbumsRoute: AuthenticatedAlbumsRoute,
   AuthenticatedProfileRoute: AuthenticatedProfileRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
+  AuthenticatedAlbumsAlbumIdRoute: AuthenticatedAlbumsAlbumIdRoute,
 }
 
 const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(

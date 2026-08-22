@@ -3,8 +3,9 @@ import { fetchAlbumCoverBlob } from "#/api/album.ts";
 
 const objectUrls = new Map<number, string>();
 const inflight = new Map<number, Promise<string | null>>();
+const subscribers = new Map<number, Set<() => void>>();
 
-function getAlbumCoverUrl(id: number) {
+function getAlbumCoverUrl(id: number, _revision = 0) {
 	const cached = objectUrls.get(id);
 	if (cached) {
 		return Promise.resolve(cached);
@@ -29,11 +30,40 @@ function getAlbumCoverUrl(id: number) {
 	return request;
 }
 
+export function forgetAlbumCoverUrl(id: number) {
+	const url = objectUrls.get(id);
+	if (url) {
+		URL.revokeObjectURL(url);
+		objectUrls.delete(id);
+	}
+	inflight.delete(id);
+	for (const notify of subscribers.get(id) ?? []) {
+		notify();
+	}
+}
+
 export function useAlbumCoverUrl(id: number | null) {
 	const [url, setUrl] = useState<string | null>(() =>
 		id == null ? null : (objectUrls.get(id) ?? null),
 	);
 	const [error, setError] = useState(false);
+	const [revision, setRevision] = useState(0);
+
+	useEffect(() => {
+		if (id == null) {
+			return;
+		}
+		const listeners = subscribers.get(id) ?? new Set<() => void>();
+		const notify = () => setRevision((current) => current + 1);
+		listeners.add(notify);
+		subscribers.set(id, listeners);
+		return () => {
+			listeners.delete(notify);
+			if (listeners.size === 0) {
+				subscribers.delete(id);
+			}
+		};
+	}, [id]);
 
 	useEffect(() => {
 		if (id == null) {
@@ -41,8 +71,9 @@ export function useAlbumCoverUrl(id: number | null) {
 			return;
 		}
 		let cancelled = false;
+		setUrl(objectUrls.get(id) ?? null);
 		setError(false);
-		void getAlbumCoverUrl(id)
+		void getAlbumCoverUrl(id, revision)
 			.then((nextUrl) => {
 				if (!cancelled) {
 					setUrl(nextUrl);
@@ -56,7 +87,7 @@ export function useAlbumCoverUrl(id: number | null) {
 		return () => {
 			cancelled = true;
 		};
-	}, [id]);
+	}, [id, revision]);
 
 	return { url, error };
 }

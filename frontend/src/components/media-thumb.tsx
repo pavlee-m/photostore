@@ -1,4 +1,4 @@
-import { FolderPlus, Play, Trash2 } from "lucide-react";
+import { FolderMinus, FolderPlus, Play, Trash2 } from "lucide-react";
 import {
 	ContextMenu,
 	ContextMenuContent,
@@ -15,11 +15,13 @@ export function MediaThumb({
 	onAddToAlbum,
 	onDelete,
 	onOpen,
+	onRemoveFromAlbum,
 }: {
 	media: MediaFile;
 	onOpen: (media: MediaFile) => void;
-	onDelete: (media: MediaFile) => void;
-	onAddToAlbum: (media: MediaFile) => void;
+	onDelete?: (media: MediaFile) => void;
+	onAddToAlbum?: (media: MediaFile) => void;
+	onRemoveFromAlbum?: (media: MediaFile) => void;
 }) {
 	const { setNode, visible } = useInView<HTMLDivElement>();
 	const isVideo = media.fileType.startsWith("video/");
@@ -60,24 +62,40 @@ export function MediaThumb({
 					</button>
 				</ContextMenuTrigger>
 				<ContextMenuContent>
-					<ContextMenuItem
-						onSelect={() => {
-							window.setTimeout(() => onAddToAlbum(media), 0);
-						}}
-					>
-						<FolderPlus />
-						Add to album
-					</ContextMenuItem>
-					<ContextMenuSeparator />
-					<ContextMenuItem
-						onSelect={() => {
-							window.setTimeout(() => onDelete(media), 0);
-						}}
-						variant="destructive"
-					>
-						<Trash2 />
-						Delete
-					</ContextMenuItem>
+					{onAddToAlbum ? (
+						<ContextMenuItem
+							onSelect={() => {
+								window.setTimeout(() => onAddToAlbum(media), 0);
+							}}
+						>
+							<FolderPlus />
+							Add to album
+						</ContextMenuItem>
+					) : null}
+					{onRemoveFromAlbum ? (
+						<ContextMenuItem
+							onSelect={() => {
+								window.setTimeout(() => onRemoveFromAlbum(media), 0);
+							}}
+						>
+							<FolderMinus />
+							Remove from album
+						</ContextMenuItem>
+					) : null}
+					{onDelete && (onAddToAlbum || onRemoveFromAlbum) ? (
+						<ContextMenuSeparator />
+					) : null}
+					{onDelete ? (
+						<ContextMenuItem
+							onSelect={() => {
+								window.setTimeout(() => onDelete(media), 0);
+							}}
+							variant="destructive"
+						>
+							<Trash2 />
+							Delete
+						</ContextMenuItem>
+					) : null}
 				</ContextMenuContent>
 			</ContextMenu>
 		</div>
