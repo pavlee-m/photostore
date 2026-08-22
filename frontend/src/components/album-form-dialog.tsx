@@ -3,7 +3,6 @@ import { useEffect } from "react";
 import { toast } from "sonner";
 import { createAlbum, updateAlbum } from "#/api/album.ts";
 import { AlbumCover } from "#/components/album-cover.tsx";
-import { FieldErrors } from "#/components/field-errors.tsx";
 import { Button } from "#/components/ui/button.tsx";
 import {
 	Dialog,
@@ -13,8 +12,13 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "#/components/ui/dialog.tsx";
+import {
+	Field,
+	FieldError,
+	FieldGroup,
+	FieldLabel,
+} from "#/components/ui/field.tsx";
 import { Input } from "#/components/ui/input.tsx";
-import { Label } from "#/components/ui/label.tsx";
 import { Textarea } from "#/components/ui/textarea.tsx";
 import { forgetAlbumCoverUrl } from "#/hooks/use-album-cover-url.ts";
 import { toastApiError } from "#/lib/api-error.ts";
@@ -101,67 +105,72 @@ export function AlbumFormDialog({
 						void form.handleSubmit();
 					}}
 				>
-					<form.Field name="name">
-						{(field) => (
-							<div className="grid gap-2">
-								<Label htmlFor={field.name}>Name</Label>
-								<Input
-									autoFocus
-									id={field.name}
-									maxLength={255}
-									name={field.name}
-									onBlur={field.handleBlur}
-									onChange={(event) => field.handleChange(event.target.value)}
-									placeholder="Summer vacation"
-									value={field.state.value}
-								/>
-								<FieldErrors errors={field.state.meta.errors} />
-							</div>
-						)}
-					</form.Field>
-					<form.Field name="description">
-						{(field) => (
-							<div className="grid gap-2">
-								<Label htmlFor={field.name}>Description</Label>
-								<Textarea
-									id={field.name}
-									maxLength={255}
-									name={field.name}
-									onBlur={field.handleBlur}
-									onChange={(event) => field.handleChange(event.target.value)}
-									placeholder="A few words about this collection"
-									rows={3}
-									value={field.state.value}
-								/>
-								<FieldErrors errors={field.state.meta.errors} />
-							</div>
-						)}
-					</form.Field>
-					<form.Field name="cover">
-						{(field) => (
-							<div className="grid gap-2">
-								<Label htmlFor={field.name}>
-									{editing ? "New cover" : "Cover"}
-								</Label>
-								{editing && album.coverPhotoUrl && !field.state.value ? (
-									<div className="aspect-[3/1] overflow-hidden rounded-lg">
-										<AlbumCover album={album} />
-									</div>
-								) : null}
-								<Input
-									accept=".jpg,.jpeg,.png,.bmp,.gif,image/*"
-									id={field.name}
-									name={field.name}
-									onBlur={field.handleBlur}
-									onChange={(event) =>
-										field.handleChange(event.target.files?.[0] ?? null)
-									}
-									type="file"
-								/>
-								<FieldErrors errors={field.state.meta.errors} />
-							</div>
-						)}
-					</form.Field>
+					<FieldGroup className="gap-4">
+						<form.Field name="name">
+							{(field) => (
+								<Field data-invalid={field.state.meta.errors.length > 0}>
+									<FieldLabel htmlFor={field.name}>Name</FieldLabel>
+									<Input
+										aria-invalid={field.state.meta.errors.length > 0}
+										autoFocus
+										id={field.name}
+										maxLength={255}
+										name={field.name}
+										onBlur={field.handleBlur}
+										onChange={(event) => field.handleChange(event.target.value)}
+										placeholder="Summer vacation"
+										value={field.state.value}
+									/>
+									<FieldError errors={field.state.meta.errors} />
+								</Field>
+							)}
+						</form.Field>
+						<form.Field name="description">
+							{(field) => (
+								<Field data-invalid={field.state.meta.errors.length > 0}>
+									<FieldLabel htmlFor={field.name}>Description</FieldLabel>
+									<Textarea
+										aria-invalid={field.state.meta.errors.length > 0}
+										id={field.name}
+										maxLength={255}
+										name={field.name}
+										onBlur={field.handleBlur}
+										onChange={(event) => field.handleChange(event.target.value)}
+										placeholder="A few words about this collection"
+										rows={3}
+										value={field.state.value}
+									/>
+									<FieldError errors={field.state.meta.errors} />
+								</Field>
+							)}
+						</form.Field>
+						<form.Field name="cover">
+							{(field) => (
+								<Field data-invalid={field.state.meta.errors.length > 0}>
+									<FieldLabel htmlFor={field.name}>
+										{editing ? "New cover" : "Cover"}
+									</FieldLabel>
+									{editing && album.coverPhotoUrl && !field.state.value ? (
+										<div className="aspect-[3/1] overflow-hidden rounded-lg">
+											<AlbumCover album={album} />
+										</div>
+									) : null}
+									<Input
+										aria-invalid={field.state.meta.errors.length > 0}
+										accept=".jpg,.jpeg,.png,.bmp,.gif,image/*"
+										id={field.name}
+										name={field.name}
+										onBlur={field.handleBlur}
+										onChange={(event) =>
+											field.handleChange(event.target.files?.[0] ?? null)
+										}
+										type="file"
+									/>
+									<FieldError errors={field.state.meta.errors} />
+								</Field>
+							)}
+						</form.Field>
+					</FieldGroup>
 					<DialogFooter>
 						<Button
 							onClick={() => onOpenChange(false)}

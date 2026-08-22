@@ -1,6 +1,12 @@
 import { FolderPlus, Trash2, X } from "lucide-react";
-import { useEffect } from "react";
 import { Button } from "#/components/ui/button.tsx";
+import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogHeader,
+	DialogTitle,
+} from "#/components/ui/dialog.tsx";
 import { useMediaObjectUrl } from "#/hooks/use-media-object-url.ts";
 import type { MediaFile } from "#/types/media.ts";
 
@@ -41,43 +47,35 @@ export function MediaViewer({
 		window.setTimeout(() => action(media), 0);
 	}
 
-	useEffect(() => {
-		function onKeyDown(event: KeyboardEvent) {
-			if (event.key === "Escape") {
-				onClose();
-			}
-		}
-		const previousOverflow = document.body.style.overflow;
-		document.body.style.overflow = "hidden";
-		window.addEventListener("keydown", onKeyDown);
-		return () => {
-			document.body.style.overflow = previousOverflow;
-			window.removeEventListener("keydown", onKeyDown);
-		};
-	}, [onClose]);
-
 	return (
-		<div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
-			<button
-				aria-label="Close image"
-				className="absolute inset-0 bg-black/80"
-				onClick={onClose}
-				type="button"
-			/>
-			<div
-				aria-label={`View ${media.name}`}
-				aria-modal="true"
-				className="relative flex h-[min(92vh,60rem)] w-[min(94vw,80rem)] flex-col overflow-hidden rounded-2xl bg-background shadow-2xl"
-				role="dialog"
+		<Dialog
+			onOpenChange={(open) => {
+				if (!open) {
+					onClose();
+				}
+			}}
+			open
+		>
+			<DialogContent
+				className="flex h-[min(92vh,60rem)] w-[min(94vw,80rem)] max-w-none flex-col gap-0 overflow-hidden rounded-2xl border-0 p-0 shadow-2xl"
+				overlayClassName="bg-black/80"
 			>
-				<button
+				<DialogHeader className="sr-only">
+					<DialogTitle>{media.name}</DialogTitle>
+					<DialogDescription>
+						Preview and manage this library item.
+					</DialogDescription>
+				</DialogHeader>
+				<Button
 					aria-label="Close image"
 					className="absolute top-3 right-3 z-10 flex size-9 items-center justify-center rounded-full bg-black/65 text-white hover:bg-black/80"
 					onClick={onClose}
+					size="icon"
 					type="button"
+					variant="ghost"
 				>
 					<X className="size-5" />
-				</button>
+				</Button>
 				<div className="flex min-h-0 flex-1 items-center justify-center bg-black">
 					{error ? (
 						<p className="px-6 py-4 text-white">Could not load this file.</p>
@@ -140,7 +138,7 @@ export function MediaViewer({
 						</div>
 					) : null}
 				</section>
-			</div>
-		</div>
+			</DialogContent>
+		</Dialog>
 	);
 }

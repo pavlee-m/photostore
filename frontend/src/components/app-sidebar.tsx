@@ -1,5 +1,12 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { FolderOpen, Images, Shield, UserRound, X } from "lucide-react";
+import { FolderOpen, Images, Shield, UserRound } from "lucide-react";
+import {
+	Sheet,
+	SheetContent,
+	SheetDescription,
+	SheetHeader,
+	SheetTitle,
+} from "#/components/ui/sheet.tsx";
 import { StorageMeter, UserAvatar } from "#/components/user-avatar.tsx";
 import { isAdmin } from "#/lib/roles.ts";
 import { cn } from "#/lib/utils.ts";
@@ -22,33 +29,24 @@ export function AppSidebar({ open, onClose, user }: AppSidebarProps) {
 	});
 
 	return (
-		<>
-			<div
-				aria-hidden={!open}
-				className={cn(
-					"fixed inset-0 z-40 bg-black/35 transition-opacity",
-					open ? "opacity-100" : "pointer-events-none opacity-0",
-				)}
-				onClick={onClose}
-			/>
-			<aside
-				aria-hidden={!open}
-				className={cn(
-					"island-shell fixed inset-y-3 left-3 z-50 flex w-[min(20rem,calc(100vw-1.5rem))] flex-col rounded-2xl transition-transform duration-200",
-					open ? "translate-x-0" : "-translate-x-[120%]",
-				)}
+		<Sheet
+			onOpenChange={(nextOpen) => {
+				if (!nextOpen) {
+					onClose();
+				}
+			}}
+			open={open}
+		>
+			<SheetContent
+				className="island-shell inset-y-3 left-3 h-auto w-[min(20rem,calc(100vw-1.5rem))] gap-0 rounded-2xl border p-0 sm:max-w-none"
+				side="left"
 			>
-				<div className="flex items-center justify-between px-5 pt-5">
-					<p className="island-kicker">Photostore</p>
-					<button
-						aria-label="Close sidebar"
-						className="rounded-md p-1 text-[var(--sea-ink-soft)] hover:bg-[var(--chip-bg)]"
-						onClick={onClose}
-						type="button"
-					>
-						<X className="size-4" />
-					</button>
-				</div>
+				<SheetHeader className="px-5 pt-5 pb-0">
+					<SheetTitle className="island-kicker">Photostore</SheetTitle>
+					<SheetDescription className="sr-only">
+						Application navigation
+					</SheetDescription>
+				</SheetHeader>
 
 				<nav className="mt-6 flex flex-1 flex-col gap-1 px-3">
 					{navItems.map((item) => {
@@ -112,7 +110,7 @@ export function AppSidebar({ open, onClose, user }: AppSidebarProps) {
 						</div>
 					</Link>
 				</div>
-			</aside>
-		</>
+			</SheetContent>
+		</Sheet>
 	);
 }

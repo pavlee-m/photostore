@@ -1,18 +1,22 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { AlertCircle } from "lucide-react";
 import { useState } from "react";
 import { deleteUser, listUsers } from "#/api/admin.ts";
 import { getCurrentUser } from "#/api/user.ts";
 import { CreateUserDialog } from "#/components/admin/create-user-dialog.tsx";
 import { EditUserDialog } from "#/components/admin/edit-user-dialog.tsx";
+import { ConfirmationDialog } from "#/components/confirmation-dialog.tsx";
+import { Alert, AlertDescription, AlertTitle } from "#/components/ui/alert.tsx";
 import { Button } from "#/components/ui/button.tsx";
 import {
-	Dialog,
-	DialogContent,
-	DialogDescription,
-	DialogFooter,
-	DialogHeader,
-	DialogTitle,
-} from "#/components/ui/dialog.tsx";
+	Pagination,
+	PaginationContent,
+	PaginationItem,
+	PaginationNext,
+	PaginationPrevious,
+} from "#/components/ui/pagination.tsx";
+import { ScrollArea, ScrollBar } from "#/components/ui/scroll-area.tsx";
+import { Skeleton } from "#/components/ui/skeleton.tsx";
 import {
 	Table,
 	TableBody,
@@ -42,6 +46,7 @@ export function UsersPanel({
 	const [createOpen, setCreateOpen] = useState(false);
 	const [editingUser, setEditingUser] = useState<User | null>(null);
 	const [deletingUser, setDeletingUser] = useState<User | null>(null);
+	const [deletingBusy, setDeletingBusy] = useState(false);
 
 	const usersQuery = useQuery({
 		queryKey: ["admin-users", page],
@@ -60,6 +65,7 @@ export function UsersPanel({
 		if (!deletingUser) {
 			return;
 		}
+		setDeletingBusy(true);
 		try {
 			await deleteUser(deletingUser.id);
 			setDeletingUser(null);
@@ -69,10 +75,16 @@ export function UsersPanel({
 			}
 		} catch (error) {
 			toastApiError(error, "Could not delete the user.");
+		} finally {
+			setDeletingBusy(false);
 		}
 	}
 
 	const pageData = usersQuery.data;
+	const hasPreviousPage = page > 0;
+	const hasNextPage = Boolean(
+		pageData && pageData.totalPages > 0 && page + 1 < pageData.totalPages,
+	);
 
 	return (
 		<section className="island-shell rounded-2xl p-6">
@@ -85,86 +97,120 @@ export function UsersPanel({
 			</div>
 
 			{usersQuery.isLoading ? (
-				<p className="mt-6 text-sm text-[var(--sea-ink-soft)]">
-					Loading users...
-				</p>
+				<output aria-label="Loading users" className="mt-6 grid gap-3">
+					{["one", "two", "three", "four", "five"].map((id) => (
+						<Skeleton className="h-11 w-full" key={id} />
+					))}
+				</output>
 			) : usersQuery.isError ? (
-				<p className="mt-6 text-destructive text-sm">Could not load users.</p>
+				<Alert className="mt-6" variant="destructive">
+					<AlertCircle />
+					<AlertTitle>Could not load users</AlertTitle>
+					<AlertDescription>
+						Refresh the page or try again in a moment.
+					</AlertDescription>
+				</Alert>
 			) : (
 				<div className="mt-6">
-					<Table>
-						<TableHeader>
-							<TableRow>
-								<TableHead>Email</TableHead>
-								<TableHead>Role</TableHead>
-								<TableHead>Storage</TableHead>
-								<TableHead>Used</TableHead>
-								<TableHead className="text-right">Actions</TableHead>
-							</TableRow>
-						</TableHeader>
-						<TableBody>
-							{pageData?.content.map((user) => (
-								<TableRow key={user.id}>
-									<TableCell className="font-medium">{user.email}</TableCell>
-									<TableCell>{formatRole(user.role.name)}</TableCell>
-									<TableCell>{formatStorageMb(user.storage_space)}</TableCell>
-									<TableCell>
-										{storagePercent(user.storage_used ?? 0, user.storage_space)}
-										%
-										<span className="ml-1 text-muted-foreground">
-											({formatStorageMb(user.storage_used ?? 0)})
-										</span>
-									</TableCell>
-									<TableCell className="text-right">
-										<div className="flex justify-end gap-2">
-											<Button
-												onClick={() => setEditingUser(user)}
-												size="sm"
-												variant="outline"
-											>
-												Edit
-											</Button>
-											<Button
-												disabled={user.id === currentUserId}
-												onClick={() => setDeletingUser(user)}
-												size="sm"
-												variant="destructive"
-											>
-												Delete
-											</Button>
-										</div>
-									</TableCell>
-								</TableRow>
-							))}
-						</TableBody>
-					</Table>
+					<ScrollArea className="w-full">
+						<div className="min-w-3xl">
+							<Table>
+								<TableHeader>
+									<TableRow>
+										<TableHead>Email</TableHead>
+										<TableHead>Role</TableHead>
+										<TableHead>Storage</TableHead>
+										<TableHead>Used</TableHead>
+										<TableHead className="text-right">Actions</TableHead>
+									</TableRow>
+								</TableHeader>
+								<TableBody>
+									{pageData?.content.map((user) => (
+										<TableRow key={user.id}>
+											<TableCell className="font-medium">
+												{user.email}
+											</TableCell>
+											<TableCell>{formatRole(user.role.name)}</TableCell>
+											<TableCell>
+												{formatStorageMb(user.storage_space)}
+											</TableCell>
+											<TableCell>
+												{storagePercent(
+													user.storage_used ?? 0,
+													user.storage_space,
+												)}
+												%
+												<span className="ml-1 text-muted-foreground">
+													({formatStorageMb(user.storage_used ?? 0)})
+												</span>
+											</TableCell>
+											<TableCell className="text-right">
+												<div className="flex justify-end gap-2">
+													<Button
+														onClick={() => setEditingUser(user)}
+														size="sm"
+														variant="outline"
+													>
+														Edit
+													</Button>
+													<Button
+														disabled={user.id === currentUserId}
+														onClick={() => setDeletingUser(user)}
+														size="sm"
+														variant="destructive"
+													>
+														Delete
+													</Button>
+												</div>
+											</TableCell>
+										</TableRow>
+									))}
+								</TableBody>
+							</Table>
+						</div>
+						<ScrollBar orientation="horizontal" />
+					</ScrollArea>
 					<div className="mt-4 flex items-center justify-between text-sm text-[var(--sea-ink-soft)]">
 						<p>
 							Page {pageData ? pageData.page + 1 : 1} of{" "}
 							{pageData && pageData.totalPages > 0 ? pageData.totalPages : 1}
 						</p>
-						<div className="flex gap-2">
-							<Button
-								disabled={page <= 0}
-								onClick={() => onPageChange(page - 1)}
-								size="sm"
-								variant="outline"
-							>
-								Previous
-							</Button>
-							<Button
-								disabled={
-									!pageData ||
-									page + 1 >= pageData.totalPages ||
-									pageData.totalPages === 0
-								}
-								onClick={() => onPageChange(page + 1)}
-								size="sm"
-								variant="outline"
-							>
-								Next
-							</Button>
-						</div>
+						<Pagination className="mx-0 w-auto justify-end">
+							<PaginationContent>
+								<PaginationItem>
+									<PaginationPrevious
+										aria-disabled={!hasPreviousPage}
+										className={
+											hasPreviousPage
+												? undefined
+												: "pointer-events-none opacity-50"
+										}
+										href={hasPreviousPage ? `?page=${page - 1}` : "#"}
+										onClick={(event) => {
+											event.preventDefault();
+											if (hasPreviousPage) {
+												onPageChange(page - 1);
+											}
+										}}
+									/>
+								</PaginationItem>
+								<PaginationItem>
+									<PaginationNext
+										aria-disabled={!hasNextPage}
+										className={
+											hasNextPage ? undefined : "pointer-events-none opacity-50"
+										}
+										href={hasNextPage ? `?page=${page + 1}` : "#"}
+										onClick={(event) => {
+											event.preventDefault();
+											if (hasNextPage) {
+												onPageChange(page + 1);
+											}
+										}}
+									/>
+								</PaginationItem>
+							</PaginationContent>
+						</Pagination>
 					</div>
 				</div>
 			)}
@@ -186,35 +232,20 @@ export function UsersPanel({
 					user={editingUser}
 				/>
 			) : null}
-			<Dialog
+			<ConfirmationDialog
+				busy={deletingBusy}
+				busyLabel="Deleting..."
+				confirmLabel="Delete user"
+				description={<>Delete {deletingUser?.email}? This cannot be undone.</>}
+				onConfirm={handleDelete}
 				onOpenChange={(open) => {
 					if (!open) {
 						setDeletingUser(null);
 					}
 				}}
 				open={deletingUser !== null}
-			>
-				<DialogContent>
-					<DialogHeader>
-						<DialogTitle>Delete user</DialogTitle>
-						<DialogDescription>
-							Delete {deletingUser?.email}? This cannot be undone.
-						</DialogDescription>
-					</DialogHeader>
-					<DialogFooter>
-						<Button
-							onClick={() => setDeletingUser(null)}
-							type="button"
-							variant="outline"
-						>
-							Cancel
-						</Button>
-						<Button onClick={() => void handleDelete()} variant="destructive">
-							Delete
-						</Button>
-					</DialogFooter>
-				</DialogContent>
-			</Dialog>
+				title="Delete user"
+			/>
 		</section>
 	);
 }

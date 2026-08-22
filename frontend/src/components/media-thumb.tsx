@@ -6,6 +6,7 @@ import {
 	ContextMenuSeparator,
 	ContextMenuTrigger,
 } from "#/components/ui/context-menu.tsx";
+import { Skeleton } from "#/components/ui/skeleton.tsx";
 import { useInView } from "#/hooks/use-in-view.ts";
 import { useMediaObjectUrl } from "#/hooks/use-media-object-url.ts";
 import type { MediaFile } from "#/types/media.ts";
@@ -50,7 +51,7 @@ export function MediaThumb({
 								Could not load
 							</span>
 						) : !url ? (
-							<span className="block size-full animate-pulse bg-[color-mix(in_oklab,var(--chip-bg)_70%,black)]" />
+							<Skeleton className="size-full rounded-none" />
 						) : (
 							<img
 								alt={media.name}

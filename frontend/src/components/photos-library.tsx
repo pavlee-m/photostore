@@ -3,8 +3,11 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { listMedia } from "#/api/media.ts";
 import { AddToAlbumDialog } from "#/components/add-to-album-dialog.tsx";
 import { DeleteMediaDialog } from "#/components/delete-media-dialog.tsx";
+import { MediaGridSkeleton } from "#/components/library-skeletons.tsx";
+import { LoadErrorState } from "#/components/load-error-state.tsx";
 import { MediaThumb } from "#/components/media-thumb.tsx";
 import { MediaViewer } from "#/components/media-viewer.tsx";
+import { Skeleton } from "#/components/ui/skeleton.tsx";
 import { groupMediaByDate } from "#/lib/dates.ts";
 import type { MediaFile } from "#/types/media.ts";
 
@@ -53,18 +56,15 @@ export function PhotosLibrary() {
 
 	if (mediaQuery.isLoading) {
 		return (
-			<main className="flex min-h-[calc(100svh-4rem)] items-center justify-center p-6">
-				<p className="text-[var(--sea-ink-soft)]">Loading your photos...</p>
+			<main className="w-full px-4 py-8 sm:px-6 lg:px-8">
+				<Skeleton className="mb-4 h-8 w-40" />
+				<MediaGridSkeleton />
 			</main>
 		);
 	}
 
 	if (mediaQuery.isError) {
-		return (
-			<main className="flex min-h-[calc(100svh-4rem)] items-center justify-center p-6">
-				<p className="text-destructive">Could not load your photos.</p>
-			</main>
-		);
+		return <LoadErrorState message="Could not load your photos." />;
 	}
 
 	if (items.length === 0) {

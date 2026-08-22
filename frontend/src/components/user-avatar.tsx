@@ -1,7 +1,11 @@
+import {
+	Avatar,
+	AvatarFallback,
+	AvatarImage,
+} from "#/components/ui/avatar.tsx";
 import { Progress } from "#/components/ui/progress.tsx";
 import { useProfilePictureUrl } from "#/hooks/use-profile-picture.ts";
 import { formatStorageMb, storagePercent } from "#/lib/storage.ts";
-import { cn } from "#/lib/utils.ts";
 import type { User } from "#/types/user.ts";
 
 function initialsFor(email: string) {
@@ -28,25 +32,13 @@ export function UserAvatar({
 	const src = previewSrc || fetchedSrc;
 	const dimension = sizes[size];
 
-	if (src) {
-		return (
-			<img
-				alt=""
-				className={cn(dimension, "rounded-full object-cover")}
-				src={src}
-			/>
-		);
-	}
-
 	return (
-		<div
-			className={cn(
-				dimension,
-				"flex items-center justify-center rounded-full bg-[color-mix(in_oklab,var(--lagoon)_28%,var(--foam))] font-semibold text-[var(--sea-ink)]",
-			)}
-		>
-			{initialsFor(user.email)}
-		</div>
+		<Avatar className={dimension}>
+			{src ? <AvatarImage alt="" className="object-cover" src={src} /> : null}
+			<AvatarFallback className="bg-[color-mix(in_oklab,var(--lagoon)_28%,var(--foam))] font-semibold text-[var(--sea-ink)]">
+				{initialsFor(user.email)}
+			</AvatarFallback>
+		</Avatar>
 	);
 }
 

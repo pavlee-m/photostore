@@ -3,15 +3,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { deleteMedia } from "#/api/media.ts";
 import { getCurrentUser } from "#/api/user.ts";
-import { Button } from "#/components/ui/button.tsx";
-import {
-	Dialog,
-	DialogContent,
-	DialogDescription,
-	DialogFooter,
-	DialogHeader,
-	DialogTitle,
-} from "#/components/ui/dialog.tsx";
+import { ConfirmationDialog } from "#/components/confirmation-dialog.tsx";
 import { forgetMediaObjectUrl } from "#/hooks/use-media-object-url.ts";
 import { toastApiError } from "#/lib/api-error.ts";
 import { useAuthStore } from "#/stores/auth.ts";
@@ -56,40 +48,20 @@ export function DeleteMediaDialog({
 	}
 
 	return (
-		<Dialog
-			onOpenChange={(open) => {
-				if (!busy) {
-					onOpenChange(open);
-				}
-			}}
+		<ConfirmationDialog
+			busy={busy}
+			busyLabel="Deleting..."
+			confirmLabel="Delete photo"
+			description={
+				<>
+					Delete {media?.name}? This removes it from your library and every
+					album. This cannot be undone.
+				</>
+			}
+			onConfirm={handleDelete}
+			onOpenChange={onOpenChange}
 			open={media !== null}
-		>
-			<DialogContent>
-				<DialogHeader>
-					<DialogTitle>Delete photo</DialogTitle>
-					<DialogDescription>
-						Delete {media?.name}? This removes it from your library and every
-						album. This cannot be undone.
-					</DialogDescription>
-				</DialogHeader>
-				<DialogFooter>
-					<Button
-						disabled={busy}
-						onClick={() => onOpenChange(false)}
-						type="button"
-						variant="outline"
-					>
-						Cancel
-					</Button>
-					<Button
-						disabled={busy}
-						onClick={() => void handleDelete()}
-						variant="destructive"
-					>
-						{busy ? "Deleting..." : "Delete photo"}
-					</Button>
-				</DialogFooter>
-			</DialogContent>
-		</Dialog>
+			title="Delete photo"
+		/>
 	);
 }

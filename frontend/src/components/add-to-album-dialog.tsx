@@ -10,6 +10,8 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "#/components/ui/dialog.tsx";
+import { ScrollArea } from "#/components/ui/scroll-area.tsx";
+import { Skeleton } from "#/components/ui/skeleton.tsx";
 import type { MediaFile } from "#/types/media.ts";
 
 export function AddToAlbumDialog({
@@ -49,9 +51,14 @@ export function AddToAlbumDialog({
 					</DialogDescription>
 				</DialogHeader>
 				{albumsQuery.isLoading ? (
-					<p className="text-sm text-[var(--sea-ink-soft)]">
-						Loading albums...
-					</p>
+					<div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+						{["one", "two", "three", "four", "five", "six"].map((id) => (
+							<div className="grid gap-2" key={id}>
+								<Skeleton className="aspect-square rounded-lg" />
+								<Skeleton className="h-4 w-2/3" />
+							</div>
+						))}
+					</div>
 				) : albumsQuery.isError ? (
 					<p className="text-destructive text-sm">Could not load albums.</p>
 				) : !albumsQuery.data?.length ? (
@@ -60,33 +67,35 @@ export function AddToAlbumDialog({
 						then come back and add this photo.
 					</p>
 				) : (
-					<div className="grid max-h-[60vh] grid-cols-2 gap-3 overflow-y-auto sm:grid-cols-3">
-						{albumsQuery.data.map((album) => (
-							<Button
-								className="h-auto flex-col items-stretch gap-2 whitespace-normal p-2"
-								disabled={addMutation.isPending || media == null}
-								key={album.id}
-								onClick={() => {
-									if (!media) {
-										return;
-									}
-									addMutation.mutate({
-										albumId: album.id,
-										mediaId: media.id,
-									});
-								}}
-								type="button"
-								variant="outline"
-							>
-								<div className="aspect-square overflow-hidden rounded-lg">
-									<AlbumCover album={album} />
-								</div>
-								<span className="truncate text-left text-sm font-medium">
-									{album.name}
-								</span>
-							</Button>
-						))}
-					</div>
+					<ScrollArea className="h-[60vh] max-h-96">
+						<div className="grid grid-cols-2 gap-3 pr-3 sm:grid-cols-3">
+							{albumsQuery.data.map((album) => (
+								<Button
+									className="h-auto flex-col items-stretch gap-2 whitespace-normal p-2"
+									disabled={addMutation.isPending || media == null}
+									key={album.id}
+									onClick={() => {
+										if (!media) {
+											return;
+										}
+										addMutation.mutate({
+											albumId: album.id,
+											mediaId: media.id,
+										});
+									}}
+									type="button"
+									variant="outline"
+								>
+									<div className="aspect-square overflow-hidden rounded-lg">
+										<AlbumCover album={album} />
+									</div>
+									<span className="truncate text-left text-sm font-medium">
+										{album.name}
+									</span>
+								</Button>
+							))}
+						</div>
+					</ScrollArea>
 				)}
 			</DialogContent>
 		</Dialog>
