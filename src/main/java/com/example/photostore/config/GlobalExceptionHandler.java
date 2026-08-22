@@ -21,9 +21,11 @@ import com.example.photostore.exception.InvalidFileException;
 import com.example.photostore.exception.InvalidPasswordException;
 import com.example.photostore.exception.MediaAlreadyInAlbumException;
 import com.example.photostore.exception.MediaFileNotFoundException;
+import com.example.photostore.exception.ProfilePictureNotFoundException;
 import com.example.photostore.exception.RoleNotFoundException;
 import com.example.photostore.exception.StorageCapacityExceededException;
 import com.example.photostore.exception.StorageOperationException;
+import com.example.photostore.exception.ThumbnailNotFoundException;
 import com.example.photostore.exception.UserNotFoundException;
 
 @RestControllerAdvice
@@ -41,6 +43,11 @@ public class GlobalExceptionHandler {
         return error(HttpStatus.NOT_FOUND, "MEDIA_NOT_FOUND", exception.getMessage());
     }
 
+    @ExceptionHandler(ThumbnailNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleThumbnailNotFound(ThumbnailNotFoundException exception) {
+        return error(HttpStatus.NOT_FOUND, "THUMBNAIL_NOT_FOUND", exception.getMessage());
+    }
+
     @ExceptionHandler(AlbumNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleAlbumNotFound(AlbumNotFoundException exception) {
         return error(HttpStatus.NOT_FOUND, "ALBUM_NOT_FOUND", exception.getMessage());
@@ -49,6 +56,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(AlbumCoverNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleAlbumCoverNotFound(AlbumCoverNotFoundException exception) {
         return error(HttpStatus.NOT_FOUND, "ALBUM_COVER_NOT_FOUND", exception.getMessage());
+    }
+
+    @ExceptionHandler(ProfilePictureNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleProfilePictureNotFound(ProfilePictureNotFoundException exception) {
+        return error(HttpStatus.NOT_FOUND, "PROFILE_PICTURE_NOT_FOUND", exception.getMessage());
     }
 
     @ExceptionHandler(MediaAlreadyInAlbumException.class)

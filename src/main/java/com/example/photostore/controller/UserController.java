@@ -33,6 +33,16 @@ public class UserController {
         return ResponseEntity.ok(user);
     }
 
+    @GetMapping("/me/profile-picture")
+    public ResponseEntity<byte[]> getProfilePicture(Authentication authentication) {
+        final Long userId = Long.parseLong(authentication.getName());
+        UserService.ProfilePicture picture = userService.getProfilePicture(userId);
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(picture.contentType()))
+                .header(HttpHeaders.CACHE_CONTROL, "private, no-cache")
+                .body(picture.data());
+    }
+
     @DeleteMapping("/me")
     public ResponseEntity<String> deleteUser(Authentication authentication, @RequestBody PasswordBodyRequest deleteAccountRequest) {
         final Long userId = Long.parseLong(authentication.getName());

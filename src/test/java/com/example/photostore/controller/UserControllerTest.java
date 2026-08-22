@@ -63,6 +63,30 @@ class UserControllerTest {
     }
 
     @Test
+    void getProfilePicture_returnsImageBytes() throws Exception {
+        when(userService.getProfilePicture(7L))
+                .thenReturn(new UserService.ProfilePicture(new byte[] {1, 2, 3}, "image/jpeg"));
+
+        mockMvc.perform(get("/api/v1/user/me/profile-picture")
+                        .principal(authentication()))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.IMAGE_JPEG));
+
+        verify(userService).getProfilePicture(7L);
+    }
+
+    @Test
+    void getProfilePicture_mapsNotFoundError() throws Exception {
+        when(userService.getProfilePicture(7L))
+                .thenThrow(new com.example.photostore.exception.ProfilePictureNotFoundException(7L));
+
+        mockMvc.perform(get("/api/v1/user/me/profile-picture")
+                        .principal(authentication()))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("PROFILE_PICTURE_NOT_FOUND"));
+    }
+
+    @Test
     void getUserDetails_mapsUserNotFoundError() throws Exception {
         when(userService.getUserDetails(7L))
                 .thenThrow(new UserNotFoundException("User not found with id: 7"));

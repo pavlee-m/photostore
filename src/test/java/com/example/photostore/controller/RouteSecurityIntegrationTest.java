@@ -204,4 +204,15 @@ class RouteSecurityIntegrationTest {
                         .param("name", "Vacation"))
                 .andExpect(status().isUnauthorized());
     }
+
+    @Test
+    @Order(17)
+    void listUsers_requiresAdminRole() throws Exception {
+        mockMvc.perform(get("/api/v1/admin/users"))
+                .andExpect(status().isUnauthorized());
+
+        mockMvc.perform(get("/api/v1/admin/users")
+                        .with(user("user@example.com").roles("USER")))
+                .andExpect(status().isForbidden());
+    }
 }

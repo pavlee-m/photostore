@@ -151,6 +151,29 @@ class MediaControllerTest {
                 .andExpect(jsonPath("$[0].hash").doesNotExist());
     }
 
+    @Test
+    void getThumbnail_returnsJpegBytes() throws Exception {
+        when(mediaService.getOrCreateThumbnail(42L, 7L)).thenReturn(new byte[] {1, 2, 3});
+
+        mockMvc.perform(get("/api/v1/media/42/thumbnail")
+                        .principal(authentication()))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(org.springframework.http.MediaType.IMAGE_JPEG));
+
+        verify(mediaService).getOrCreateThumbnail(42L, 7L);
+    }
+
+    @Test
+    void getThumbnail_mapsNotFoundError() throws Exception {
+        when(mediaService.getOrCreateThumbnail(42L, 7L))
+                .thenThrow(new com.example.photostore.exception.ThumbnailNotFoundException(42L));
+
+        mockMvc.perform(get("/api/v1/media/42/thumbnail")
+                        .principal(authentication()))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("THUMBNAIL_NOT_FOUND"));
+    }
+
     private UsernamePasswordAuthenticationToken authentication() {
         return new UsernamePasswordAuthenticationToken("7", null, java.util.List.of());
     }

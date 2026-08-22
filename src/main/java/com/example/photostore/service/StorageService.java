@@ -24,6 +24,8 @@ import com.example.photostore.entity.User;
 import com.example.photostore.exception.InvalidFileException;
 import com.example.photostore.exception.StorageCapacityExceededException;
 import com.example.photostore.exception.StorageOperationException;
+import com.example.photostore.image.ImageThumbnail;
+import com.example.photostore.image.StoredThumbnail;
 import com.example.photostore.security.Encryption;
 import com.example.photostore.upload.FinalizedUpload;
 import com.example.photostore.upload.UploadStatus;
@@ -56,6 +58,9 @@ public class StorageService {
     @Value("${photostore.storage_directory}")
     private String storageDirectory;
 
+    @Value("${photostore.thumbnails_directory}")
+    private String thumbnailsDirectory;
+
     @Value("${photostore.chunks_directory}")
     private String chunksDirectory;
 
@@ -70,12 +75,22 @@ public class StorageService {
         validateImageFile(file);
         String fileExtension = extractFormatFromMimeType(file.getContentType());
         String fileName = userId + "." + fileExtension;
+        deleteProfilePictureByUserId(userId);
         try {
+            Files.createDirectories(Paths.get(profilePicturesDirectory));
             Path path = Paths.get(profilePicturesDirectory, fileName);
             Files.copy(file.getInputStream(), path, StandardCopyOption.REPLACE_EXISTING);
             return path.toString();
         } catch (IOException e) {
             throw new StorageOperationException("Failed to upload profile picture", e);
+        }
+    }
+
+    public byte[] readProfilePicture(String path) {
+        try {
+            return Files.readAllBytes(Paths.get(path));
+        } catch (IOException e) {
+            throw new StorageOperationException("Failed to read profile picture", e);
         }
     }
 
@@ -157,6 +172,7 @@ public class StorageService {
             Files.createDirectories(Paths.get(profilePicturesDirectory));
             Files.createDirectories(Paths.get(albumCoversDirectory));
             Files.createDirectories(Paths.get(storageDirectory));
+            Files.createDirectories(Paths.get(thumbnailsDirectory));
             Files.createDirectories(Paths.get(chunksDirectory));
         } catch (IOException e) {
             throw new StorageOperationException("Failed to create folders", e);
@@ -228,17 +244,18 @@ public class StorageService {
                     assembledPath,
                     encryptedPath,
                     encryption.decryptWithMasterKey(user.getEncryption_key()));
+            String thumbnailPath = createThumbnailIfImage(session, assembledPath, uploadId, user);
+            uploadSessionService.delete(uploadId);
+            return new FinalizedUpload(
+                    session,
+                    encryptedPath.toString(),
+                    extractFormatFromFilename(session.getFileName()),
+                    thumbnailPath);
         } catch (IOException e) {
             throw new StorageOperationException("Failed to finalize upload", e);
         } finally {
             deleteUploadTempFiles(uploadId, assembledPath, totalChunks);
         }
-
-        uploadSessionService.delete(uploadId);
-        return new FinalizedUpload(
-                session,
-                encryptedPath.toString(),
-                extractFormatFromFilename(session.getFileName()));
     }
 
     public void deleteSessionFiles(String uploadId, int totalChunks) {
@@ -275,6 +292,57 @@ public class StorageService {
             return "video/" + extension;
         }
         return null;
+    }
+
+    public boolean thumbnailExists(String thumbnailPath) {
+        return StringUtils.hasText(thumbnailPath) && Files.exists(Paths.get(thumbnailPath));
+    }
+
+    public StoredThumbnail createThumbnailFromOriginal(Path encryptedOriginal, User user) throws IOException {
+        byte[] original = decryptFile(encryptedOriginal, user);
+        byte[] jpeg = ImageThumbnail.toJpeg(original);
+        Path destination = thumbnailPath(encryptedOriginal.getFileName().toString());
+        storeEncryptedJpeg(jpeg, destination, user);
+        return new StoredThumbnail(destination.toString(), jpeg);
+    }
+
+    private String createThumbnailIfImage(UploadSession session, Path assembledPath, String uploadId, User user) {
+        if (session.getFileType() == null || !session.getFileType().startsWith("image/")) {
+            return null;
+        }
+        try {
+            byte[] jpeg = ImageThumbnail.toJpeg(assembledPath);
+            Path destination = thumbnailPath(uploadId);
+            storeEncryptedJpeg(jpeg, destination, user);
+            return destination.toString();
+        } catch (Exception e) {
+            log.warn("Failed to create thumbnail for upload {}", uploadId, e);
+            return null;
+        }
+    }
+
+    private Path thumbnailPath(String fileName) {
+        return Paths.get(thumbnailsDirectory).resolve(fileName);
+    }
+
+    private void storeEncryptedJpeg(byte[] jpeg, Path destination, User user) {
+        Path temp = Paths.get(destination.toString() + ".tmp");
+        try {
+            Files.createDirectories(destination.getParent());
+            Files.write(temp, jpeg);
+            encryption.encryptFile(
+                    temp,
+                    destination,
+                    encryption.decryptWithMasterKey(user.getEncryption_key()));
+        } catch (IOException e) {
+            throw new StorageOperationException("Failed to store thumbnail", e);
+        } finally {
+            try {
+                Files.deleteIfExists(temp);
+            } catch (IOException e) {
+                throw new StorageOperationException("Failed to clean up thumbnail temp file", e);
+            }
+        }
     }
 
     public byte[] decryptFile(Path source, User user) {

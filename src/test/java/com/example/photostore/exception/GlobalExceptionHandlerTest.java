@@ -34,6 +34,22 @@ class GlobalExceptionHandlerTest {
     }
 
     @Test
+    void mapsThumbnailNotFoundToNotFoundResponse() throws Exception {
+        mockMvc.perform(get("/test/thumbnail"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("THUMBNAIL_NOT_FOUND"))
+                .andExpect(jsonPath("$.status").value(404));
+    }
+
+    @Test
+    void mapsProfilePictureNotFoundToNotFoundResponse() throws Exception {
+        mockMvc.perform(get("/test/profile-picture"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("PROFILE_PICTURE_NOT_FOUND"))
+                .andExpect(jsonPath("$.status").value(404));
+    }
+
+    @Test
     void mapsMediaAlreadyInAlbumToConflictResponse() throws Exception {
         mockMvc.perform(get("/test/album-media"))
                 .andExpect(status().isConflict())
@@ -77,6 +93,16 @@ class GlobalExceptionHandlerTest {
         @GetMapping("/test/album-media")
         void albumMedia() {
             throw new MediaAlreadyInAlbumException(3L, 42L);
+        }
+
+        @GetMapping("/test/thumbnail")
+        void thumbnail() {
+            throw new ThumbnailNotFoundException(42L);
+        }
+
+        @GetMapping("/test/profile-picture")
+        void profilePicture() {
+            throw new ProfilePictureNotFoundException(7L);
         }
 
         @GetMapping("/test/email")

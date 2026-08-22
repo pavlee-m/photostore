@@ -75,7 +75,11 @@ public class MediaController {
             final Long userId = Long.parseLong(authentication.getName());
             User user = userService.findById(userId);
             FinalizedUpload finalized = storageService.finalizeUpload(uploadId, user);
-            mediaService.saveFromUpload(finalized.session(), finalized.storedPath(), finalized.extension());
+            mediaService.saveFromUpload(
+                    finalized.session(),
+                    finalized.storedPath(),
+                    finalized.extension(),
+                    finalized.thumbnailPath());
             return ResponseEntity.ok(uploadId);
         }
         return ResponseEntity.ok("Chunk uploaded successfully");
@@ -113,6 +117,19 @@ public class MediaController {
         final Long userId = Long.parseLong(authentication.getName());
         MediaFile media = mediaService.findById(id, userId);
         byte[] decrypted = storageService.decryptFile(Paths.get(media.getPath()), media.getUser());
-        return ResponseEntity.ok().contentType(MediaType.parseMediaType(media.getFileType())).header(HttpHeaders.CACHE_CONTROL, "no-store").body(decrypted);
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(media.getFileType()))
+                .header(HttpHeaders.CACHE_CONTROL, "private, max-age=86400")
+                .body(decrypted);
+    }
+
+    @GetMapping("/{id}/thumbnail")
+    public ResponseEntity<byte[]> getThumbnail(Authentication authentication, @PathVariable Long id) {
+        final Long userId = Long.parseLong(authentication.getName());
+        byte[] thumbnail = mediaService.getOrCreateThumbnail(id, userId);
+        return ResponseEntity.ok()
+                .contentType(MediaType.IMAGE_JPEG)
+                .header(HttpHeaders.CACHE_CONTROL, "private, max-age=86400")
+                .body(thumbnail);
     }
 }

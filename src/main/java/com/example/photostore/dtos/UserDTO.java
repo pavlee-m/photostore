@@ -32,5 +32,8 @@ public class UserDTO {
     private float storage_space;
 
     @Nonnull
+    private float storage_used;
+
+    @Nonnull
     private Role role;
 }

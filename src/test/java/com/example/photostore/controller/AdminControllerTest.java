@@ -1,6 +1,7 @@
 package com.example.photostore.controller;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -19,6 +20,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -29,6 +32,7 @@ import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.example.photostore.dtos.AdminUpdateUserRequest;
+import com.example.photostore.dtos.UserDTO;
 import com.example.photostore.entity.Role;
 import com.example.photostore.entity.User;
 import com.example.photostore.exception.EmailAlreadyExistsException;
@@ -37,6 +41,7 @@ import com.example.photostore.security.JwtUtil;
 import com.example.photostore.service.CustomUserDetailsService;
 import com.example.photostore.service.RefreshTokenService;
 import com.example.photostore.service.RoleService;
+import com.example.photostore.service.StorageService;
 import com.example.photostore.service.UserService;
 
 @WebMvcTest(AdminController.class)
@@ -54,6 +59,9 @@ class AdminControllerTest {
 
     @MockitoBean
     private RoleService roleService;
+
+    @MockitoBean
+    private StorageService storageService;
 
     @MockitoBean
     private JwtUtil jwtUtil;
@@ -165,6 +173,7 @@ class AdminControllerTest {
         when(userService.existsByEmail("user@example.com")).thenReturn(false);
         when(roleService.findByName("ROLE_USER")).thenReturn(new Role(2L, "ROLE_USER"));
         when(encoder.encode("password")).thenReturn("encoded-password");
+        when(storageService.getStorageMaxSizeMb()).thenReturn(102400);
 
         mockMvc.perform(post("/api/v1/admin/create-user")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -186,6 +195,66 @@ class AdminControllerTest {
                 .andExpect(content().string("Email not available!"));
 
         verify(userService, never()).saveUser(any(User.class));
+    }
+
+    @Test
+    void listUsers_returnsPagedUsers() throws Exception {
+        UserDTO user = UserDTO.builder()
+                .id(1L)
+                .email("admin@example.com")
+                .storage_space(25600.0f)
+                .storage_used(128.0f)
+                .role(new Role(1L, "ROLE_ADMIN"))
+                .build();
+        when(userService.listUsers(any()))
+                .thenReturn(new PageImpl<>(List.of(user), PageRequest.of(0, 10), 1));
+
+        mockMvc.perform(get("/api/v1/admin/users")
+                        .param("page", "0")
+                        .param("size", "10"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].email").value("admin@example.com"))
+                .andExpect(jsonPath("$.content[0].storage_used").value(128.0))
+                .andExpect(jsonPath("$.page").value(0))
+                .andExpect(jsonPath("$.size").value(10))
+                .andExpect(jsonPath("$.totalElements").value(1))
+                .andExpect(jsonPath("$.totalPages").value(1));
+    }
+
+    @Test
+    void createUser_usesRequestedStorageAndRole() throws Exception {
+        when(userService.existsByEmail("user@example.com")).thenReturn(false);
+        when(roleService.findByName("ROLE_ADMIN")).thenReturn(new Role(1L, "ROLE_ADMIN"));
+        when(encoder.encode("password")).thenReturn("encoded-password");
+        when(storageService.getStorageMaxSizeMb()).thenReturn(102400);
+
+        mockMvc.perform(post("/api/v1/admin/create-user")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\":\"user@example.com\",\"password\":\"password\",\"storage_space\":51200,\"roleName\":\"ROLE_ADMIN\"}"))
+                .andExpect(status().isCreated());
+
+        verify(userService).saveUser(any(User.class));
+    }
+
+    @Test
+    void updateUser_allowsMissingProfilePicture() throws Exception {
+        MockMultipartFile userPart = new MockMultipartFile(
+                "user", "", MediaType.APPLICATION_JSON_VALUE,
+                "{\"email\":\"updated@example.com\",\"storage_space\":1024}".getBytes());
+
+        mockMvc.perform(multipart("/api/v1/admin/update-user/42")
+                        .file(userPart)
+                        .with(request -> {
+                            request.setMethod("PATCH");
+                            return request;
+                        }))
+                .andExpect(status().isOk())
+                .andExpect(content().string("User updated successfully!"));
+
+        verify(userService).adminUpdateUser(
+                any(Long.class),
+                any(AdminUpdateUserRequest.class),
+                isNull());
     }
 
     @Test

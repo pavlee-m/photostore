@@ -1,6 +1,8 @@
 package com.example.photostore.service;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -14,8 +16,10 @@ import com.example.photostore.dtos.AdminUpdateUserRequest;
 import com.example.photostore.dtos.UserDTO;
 import com.example.photostore.entity.User;
 import com.example.photostore.exception.EmailAlreadyExistsException;
+import com.example.photostore.exception.ProfilePictureNotFoundException;
 import com.example.photostore.exception.RoleNotFoundException;
 import com.example.photostore.exception.StorageCapacityExceededException;
+import com.example.photostore.exception.StorageOperationException;
 import com.example.photostore.exception.UserNotFoundException;
 import com.example.photostore.mappers.UserMapper;
 import com.example.photostore.security.Encryption;
@@ -57,6 +61,10 @@ public class UserService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new UserNotFoundException("User not found with id: " + userId));
         return userMapper.userToUserDTO(user);
+    }
+
+    public Page<UserDTO> listUsers(Pageable pageable) {
+        return userRepository.findAll(pageable).map(userMapper::userToUserDTO);
     }
 
     public User findByEmail(String email) {
@@ -127,17 +135,34 @@ public class UserService {
     public void updateUserProfile(Long userId, String email, MultipartFile file) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new UserNotFoundException("User not found with id: " + userId));
-        if (email != null) { 
+        if (email != null && !email.isBlank()) {
             if (existsByEmail(email) && !email.equals(user.getEmail())) {
                 throw new EmailAlreadyExistsException();
             }
+            user.setEmail(email);
         }
         if (file != null && !file.isEmpty()) {
             String profilePicturePath = storageService.uploadProfilePicture(user.getId(), file);
             user.setProfile_picture_url(profilePicturePath);
         }
-        user.setEmail(email);
         userRepository.save(user);
+    }
+
+    public ProfilePicture getProfilePicture(Long userId) {
+        User user = findById(userId);
+        if (user.getProfile_picture_url() == null || user.getProfile_picture_url().isBlank()) {
+            throw new ProfilePictureNotFoundException(userId);
+        }
+        try {
+            return new ProfilePicture(
+                    storageService.readProfilePicture(user.getProfile_picture_url()),
+                    storageService.imageContentTypeFromFileName(user.getProfile_picture_url()));
+        } catch (StorageOperationException e) {
+            throw new ProfilePictureNotFoundException(userId);
+        }
+    }
+
+    public record ProfilePicture(byte[] data, String contentType) {
     }
 
     @Transactional

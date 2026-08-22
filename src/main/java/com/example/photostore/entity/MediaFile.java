@@ -61,4 +61,7 @@ public class MediaFile {
     // To avoid duplicate files
     @Column(nullable=false, unique=true)
     private String hash;
+
+    @Column
+    private String thumbnailPath;
 }

@@ -1,5 +1,6 @@
 package com.example.photostore.service;
 
+import java.nio.file.Paths;
 import java.time.Instant;
 import java.util.List;
 
@@ -8,11 +9,14 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import com.example.photostore.entity.MediaFile;
 import com.example.photostore.entity.UploadSession;
 import com.example.photostore.entity.User;
 import com.example.photostore.exception.MediaFileNotFoundException;
+import com.example.photostore.exception.ThumbnailNotFoundException;
+import com.example.photostore.image.StoredThumbnail;
 import com.example.photostore.repository.AlbumMediaRepository;
 import com.example.photostore.repository.MediaFileRepository;
 import com.example.photostore.repository.UserRepository;
@@ -35,7 +39,7 @@ public class MediaService {
     }
 
     @Transactional
-    public MediaFile saveFromUpload(UploadSession session, String path, String extension) {
+    public MediaFile saveFromUpload(UploadSession session, String path, String extension, String thumbnailPath) {
         User user = session.getUser();
 
         MediaFile mediaFile = new MediaFile();
@@ -47,6 +51,7 @@ public class MediaService {
         mediaFile.setUploadedAt(Instant.now());
         mediaFile.setUser(user);
         mediaFile.setHash(session.getHash());
+        mediaFile.setThumbnailPath(thumbnailPath);
 
         MediaFile saved = mediaFileRepository.save(mediaFile);
         user.setStorage_used(user.getStorage_used() + (float) (session.getTotalSize() / (1024.0 * 1024.0)));
@@ -70,8 +75,10 @@ public class MediaService {
         userRepository.save(user);
 
         String path = mediaFile.getPath();
+        String thumbnailPath = mediaFile.getThumbnailPath();
         mediaFileRepository.delete(mediaFile);
         storageService.deleteStoredFile(path);
+        storageService.deleteStoredFile(thumbnailPath);
     }
 
     @Transactional
@@ -79,8 +86,10 @@ public class MediaService {
         for (MediaFile mediaFile : mediaFileRepository.findByUser_Id(userId)) {
             albumMediaRepository.deleteByMedia_Id(mediaFile.getId());
             String path = mediaFile.getPath();
+            String thumbnailPath = mediaFile.getThumbnailPath();
             mediaFileRepository.delete(mediaFile);
             storageService.deleteStoredFile(path);
+            storageService.deleteStoredFile(thumbnailPath);
         }
     }
 
@@ -100,5 +109,25 @@ public class MediaService {
             throw new MediaFileNotFoundException(id);
         }
         return mediaFile;
+    }
+
+    @Transactional
+    public byte[] getOrCreateThumbnail(Long id, Long userId) {
+        MediaFile media = findById(id, userId);
+        if (storageService.thumbnailExists(media.getThumbnailPath())) {
+            return storageService.decryptFile(Paths.get(media.getThumbnailPath()), media.getUser());
+        }
+        if (!StringUtils.hasText(media.getFileType()) || !media.getFileType().startsWith("image/")) {
+            throw new ThumbnailNotFoundException(id);
+        }
+        try {
+            StoredThumbnail stored = storageService.createThumbnailFromOriginal(
+                    Paths.get(media.getPath()), media.getUser());
+            media.setThumbnailPath(stored.path());
+            mediaFileRepository.save(media);
+            return stored.jpegBytes();
+        } catch (Exception e) {
+            throw new ThumbnailNotFoundException(id);
+        }
     }
 }

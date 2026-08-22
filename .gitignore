@@ -40,5 +40,6 @@ profile_pictures/
 storage/
 album_covers/
 chunks/
+thumbnails/
 
 test-client/
