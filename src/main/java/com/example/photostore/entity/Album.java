@@ -3,6 +3,7 @@ package com.example.photostore.entity;
 import java.time.Instant;
 import java.util.List;
 
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -51,7 +52,7 @@ public class Album {
 
     @ToString.Exclude
     @EqualsAndHashCode.Exclude
-    @OneToMany(mappedBy="album")
+    @OneToMany(mappedBy="album", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<AlbumMedia> albumMedia;
 
 }

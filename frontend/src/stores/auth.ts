@@ -5,15 +5,15 @@ import type { User } from "#/types/user.ts";
 type AuthState = AuthSnapshot & {
 	hydrate: (snapshot: AuthSnapshot) => void;
 	setUser: (user: User | null) => void;
-	setAdminExists: (adminExists: boolean) => void;
+	setFounderExists: (founderExists: boolean) => void;
 	clear: () => void;
 };
 
 export const useAuthStore = create<AuthState>((set) => ({
 	user: null,
-	adminExists: false,
+	founderExists: false,
 	hydrate: (snapshot) => set(snapshot),
 	setUser: (user) => set({ user }),
-	setAdminExists: (adminExists) => set({ adminExists }),
+	setFounderExists: (founderExists) => set({ founderExists }),
 	clear: () => set({ user: null }),
 }));

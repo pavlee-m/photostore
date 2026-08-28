@@ -27,6 +27,9 @@ public class AuthInitializer implements ApplicationRunner {
         if (!roleService.existsByName("ROLE_ADMIN")) {
             roleService.saveRole(new Role(null, "ROLE_ADMIN"));
         }
+        if (!roleService.existsByName("ROLE_FOUNDER")) {
+            roleService.saveRole(new Role(null, "ROLE_FOUNDER"));
+        }
         // Check for admin user
     }
 }

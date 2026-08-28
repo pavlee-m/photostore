@@ -46,7 +46,7 @@ export function getRouter() {
 			queryClient,
 			auth: {
 				user: null,
-				adminExists: false,
+				founderExists: false,
 			},
 		} satisfies RouterContext,
 	});

@@ -12,7 +12,7 @@ export const Route = createFileRoute("/signin")({
 		redirect: typeof search.redirect === "string" ? search.redirect : undefined,
 	}),
 	beforeLoad: ({ context, search }) => {
-		if (!context.auth.adminExists) {
+		if (!context.auth.founderExists) {
 			throw redirect({ to: "/setup" });
 		}
 		if (context.auth.user) {
@@ -29,7 +29,7 @@ function SignInPage() {
 		<AuthShell
 			kicker="Welcome back"
 			title="Sign in"
-			description="Accounts are created by admins. Use the credentials you were given to continue."
+			description="Accounts are created by the founder or an admin. Use the credentials you were given to continue."
 		>
 			<SignInForm redirectTo={redirectTo} />
 		</AuthShell>

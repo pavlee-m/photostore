@@ -7,19 +7,16 @@ import type { UserCredentials } from "#/types/auth.ts";
 import type { PagedResponse } from "#/types/page.ts";
 import type { User } from "#/types/user.ts";
 
-export async function adminExists() {
-	const response = await apiFetch("/api/v1/admin/exists-admin");
+export async function founderExists() {
+	const response = await apiFetch("/api/v1/founder/exists-founder");
 	if (response.ok) {
-		return true;
-	}
-	if (response.status === 404) {
-		return false;
+		return (await response.json()) as boolean;
 	}
 	throw await parseApiError(response);
 }
 
-export async function createAdmin(credentials: UserCredentials) {
-	const response = await apiFetch("/api/v1/admin/create-admin", {
+export async function createFounder(credentials: UserCredentials) {
+	const response = await apiFetch("/api/v1/founder/create-founder", {
 		method: "POST",
 		body: JSON.stringify(credentials),
 	});

@@ -3,6 +3,7 @@ package com.example.photostore.entity;
 import java.time.Instant;
 import java.util.List;
 
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -14,9 +15,7 @@ import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
-import lombok.ToString;
 
 @Entity
 @Data
@@ -47,15 +46,11 @@ public class MediaFile {
     @Column(nullable=false)
     private Instant uploadedAt;
 
-    @ToString.Exclude
-    @EqualsAndHashCode.Exclude
     @ManyToOne
     @JoinColumn(name="user_id", nullable=false)
     private User user;
 
-    @ToString.Exclude
-    @EqualsAndHashCode.Exclude
-    @OneToMany(mappedBy="media")
+    @OneToMany(mappedBy="media", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<AlbumMedia> albumMedia;
 
     // To avoid duplicate files

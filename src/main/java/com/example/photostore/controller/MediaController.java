@@ -5,6 +5,7 @@ import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -19,9 +20,11 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.example.photostore.dtos.MediaFileDTO;
 import com.example.photostore.entity.MediaFile;
+import com.example.photostore.entity.UploadSession;
 import com.example.photostore.entity.User;
 import com.example.photostore.service.MediaService;
 import com.example.photostore.service.StorageService;
+import com.example.photostore.service.UploadSessionService;
 import com.example.photostore.service.UserService;
 import com.example.photostore.upload.FinalizedUpload;
 import com.example.photostore.upload.UploadInitResponse;
@@ -39,6 +42,9 @@ public class MediaController {
 
     @Autowired
     private MediaService mediaService;
+
+    @Autowired
+    private UploadSessionService uploadSessionService;
 
     @PostMapping("/upload-init")
     public ResponseEntity<UploadInitResponse> initUpload
@@ -70,9 +76,14 @@ public class MediaController {
         @RequestParam("chunk") MultipartFile chunk
     )
     {
+        // Check if the upload belongs to the user
+        final Long userId = Long.parseLong(authentication.getName());
+        UploadSession session = uploadSessionService.getByUserIdAndUploadId(userId, uploadId);
+        if (session == null) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Forbidden");
+        }
         Boolean isComplete = storageService.processChunk(uploadId, chunkIndex, chunk);
         if (isComplete) {
-            final Long userId = Long.parseLong(authentication.getName());
             User user = userService.findById(userId);
             FinalizedUpload finalized = storageService.finalizeUpload(uploadId, user);
             mediaService.saveFromUpload(
@@ -88,9 +99,15 @@ public class MediaController {
     @GetMapping("/upload-status")
     public ResponseEntity<UploadStatus> getUploadStatus
     (
+        Authentication authentication,
         @RequestParam String uploadId
     )
     {
+        final Long userId = Long.parseLong(authentication.getName());
+        UploadSession session = uploadSessionService.getByUserIdAndUploadId(userId, uploadId);
+        if (session == null) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
         UploadStatus status = storageService.getUploadStatus(uploadId);
         return ResponseEntity.ok(status);
     }

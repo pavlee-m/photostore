@@ -12,7 +12,7 @@ export async function signIn(credentials: UserCredentials) {
 }
 
 export async function signOut() {
-	const response = await apiFetch("/api/v1/auth/signout", {
+	const response = await apiFetch("/api/v1/user/logout", {
 		method: "POST",
 	});
 	if (!response.ok && response.status !== 401) {

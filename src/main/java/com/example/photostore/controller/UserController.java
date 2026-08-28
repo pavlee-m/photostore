@@ -2,6 +2,7 @@ package com.example.photostore.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
@@ -9,6 +10,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestPart;
@@ -46,6 +48,9 @@ public class UserController {
     @DeleteMapping("/me")
     public ResponseEntity<String> deleteUser(Authentication authentication, @RequestBody PasswordBodyRequest deleteAccountRequest) {
         final Long userId = Long.parseLong(authentication.getName());
+        if (userService.findById(userId).getRole().getName().equals("ROLE_FOUNDER")) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Founder account cannot be deleted.");
+        }
         if (!userService.verifyPassword(userId, deleteAccountRequest.getPassword())) {
             throw new InvalidPasswordException();
         }
@@ -69,5 +74,16 @@ public class UserController {
         final Long userId = Long.parseLong(authentication.getName());
         userService.updateUserProfile(userId, email, profilePicture);
         return ResponseEntity.ok("Profile updated successfully!");
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<String> logout(Authentication authentication) {
+        // Clear the cookies
+        ResponseCookie accessCookie = ResponseCookie.from("accessToken", "").path("/").httpOnly(true).sameSite("Lax").build();
+        ResponseCookie refreshCookie = ResponseCookie.from("refreshToken", "").path("/").httpOnly(true).sameSite("Lax").build();
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, accessCookie.toString())
+                .header(HttpHeaders.SET_COOKIE, refreshCookie.toString())
+                .body("Logged out successfully!");
     }
 }

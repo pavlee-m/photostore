@@ -1,15 +1,15 @@
 import { useForm } from "@tanstack/react-form";
 import { useRouter } from "@tanstack/react-router";
-import { createAdminAndSignIn } from "#/api/session.ts";
+import { createFounderAndSignIn } from "#/api/session.ts";
 import { FieldErrors } from "#/components/field-errors.tsx";
 import { Button } from "#/components/ui/button.tsx";
 import { Input } from "#/components/ui/input.tsx";
 import { Label } from "#/components/ui/label.tsx";
 import { toastApiError } from "#/lib/api-error.ts";
-import { createAdminSchema } from "#/schemas/admin.ts";
+import { createFounderSchema } from "#/schemas/admin.ts";
 import { useAuthStore } from "#/stores/auth.ts";
 
-export function CreateAdminForm() {
+export function CreateFounderForm() {
 	const router = useRouter();
 
 	const form = useForm({
@@ -19,22 +19,22 @@ export function CreateAdminForm() {
 			confirmPassword: "",
 		},
 		validators: {
-			onSubmit: createAdminSchema,
+			onSubmit: createFounderSchema,
 		},
 		onSubmit: async ({ value }) => {
 			try {
-				const user = await createAdminAndSignIn({
+				const user = await createFounderAndSignIn({
 					email: value.email,
 					password: value.password,
 				});
 				useAuthStore.getState().hydrate({
 					user,
-					adminExists: true,
+					founderExists: true,
 				});
 				await router.invalidate();
 				await router.navigate({ to: "/" });
 			} catch (error) {
-				toastApiError(error, "Could not create the admin account.");
+				toastApiError(error, "Could not create the founder account.");
 			}
 		},
 	});
@@ -108,7 +108,7 @@ export function CreateAdminForm() {
 			<form.Subscribe selector={(state) => state.isSubmitting}>
 				{(isSubmitting) => (
 					<Button type="submit" disabled={isSubmitting}>
-						{isSubmitting ? "Creating admin..." : "Create admin account"}
+						{isSubmitting ? "Creating founder..." : "Create founder account"}
 					</Button>
 				)}
 			</form.Subscribe>

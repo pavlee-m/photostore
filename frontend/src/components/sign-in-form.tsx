@@ -36,7 +36,7 @@ export function SignInForm({ redirectTo }: { redirectTo?: string }) {
 				}
 				useAuthStore.getState().hydrate({
 					user,
-					adminExists: true,
+					founderExists: true,
 				});
 				await router.invalidate();
 				await router.navigate({ href: safeInternalPath(redirectTo) });

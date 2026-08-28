@@ -33,35 +33,16 @@ class RouteSecurityIntegrationTest {
 
     @Test
     @Order(1)
-    void existsAdmin_isPublic() throws Exception {
-        mockMvc.perform(get("/api/v1/admin/exists-admin"))
-                .andExpect(status().isNotFound());
+    void existsFounder_isPublic() throws Exception {
+        mockMvc.perform(get("/api/v1/founder/exists-founder"))
+                .andExpect(status().isOk());
     }
 
     @Test
     @Order(2)
-    void createAdmin_bootstrapThenRequiresAuthForSecondAdmin() throws Exception {
-        mockMvc.perform(post("/api/v1/admin/create-admin")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"email\":\"admin@example.com\",\"password\":\"password\"}"))
-                .andExpect(status().isCreated());
-
-        mockMvc.perform(post("/api/v1/admin/create-admin")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"email\":\"admin2@example.com\",\"password\":\"password\"}"))
-                .andExpect(status().isUnauthorized())
-                .andExpect(content().string("Unauthorized"));
-    }
-
-    @Test
-    @Order(3)
-    void createAdmin_allowsSecondAdminWhenAuthenticatedAsAdmin() throws Exception {
-        mockMvc.perform(post("/api/v1/admin/create-admin")
-                        .with(user("admin@example.com").roles("ADMIN"))
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"email\":\"admin3@example.com\",\"password\":\"password\"}"))
-                .andExpect(status().isCreated())
-                .andExpect(content().string("Admin created successfully!"));
+    void adminEndpoints_stillRequireAuthentication() throws Exception {
+        mockMvc.perform(get("/api/v1/admin/users"))
+                .andExpect(status().isUnauthorized());
     }
 
     @Test
@@ -214,5 +195,13 @@ class RouteSecurityIntegrationTest {
         mockMvc.perform(get("/api/v1/admin/users")
                         .with(user("user@example.com").roles("USER")))
                 .andExpect(status().isForbidden());
+
+        mockMvc.perform(get("/api/v1/admin/users")
+                        .with(user("admin@example.com").roles("ADMIN")))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get("/api/v1/admin/users")
+                        .with(user("founder@example.com").roles("FOUNDER")))
+                .andExpect(status().isOk());
     }
 }

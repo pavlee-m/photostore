@@ -1,5 +1,8 @@
-import { Link, useRouterState } from "@tanstack/react-router";
-import { FolderOpen, Images, Shield, UserRound } from "lucide-react";
+import { Link, useRouter, useRouterState } from "@tanstack/react-router";
+import { FolderOpen, Images, LogOut, Shield, UserRound } from "lucide-react";
+import { useState } from "react";
+import { signOut } from "#/api/auth.ts";
+import { Button } from "#/components/ui/button.tsx";
 import {
 	Sheet,
 	SheetContent,
@@ -8,8 +11,10 @@ import {
 	SheetTitle,
 } from "#/components/ui/sheet.tsx";
 import { StorageMeter, UserAvatar } from "#/components/user-avatar.tsx";
-import { isAdmin } from "#/lib/roles.ts";
+import { toastApiError } from "#/lib/api-error.ts";
+import { canAccessAdmin } from "#/lib/roles.ts";
 import { cn } from "#/lib/utils.ts";
+import { useAuthStore } from "#/stores/auth.ts";
 import type { User } from "#/types/user.ts";
 
 type AppSidebarProps = {
@@ -24,9 +29,26 @@ const navItems = [
 ] as const;
 
 export function AppSidebar({ open, onClose, user }: AppSidebarProps) {
+	const router = useRouter();
+	const [signingOut, setSigningOut] = useState(false);
 	const pathname = useRouterState({
 		select: (state) => state.location.pathname,
 	});
+
+	async function handleSignOut() {
+		setSigningOut(true);
+		try {
+			await signOut();
+			useAuthStore.getState().clear();
+			onClose();
+			await router.invalidate();
+			await router.navigate({ to: "/signin" });
+		} catch (error) {
+			toastApiError(error, "Could not sign out.");
+		} finally {
+			setSigningOut(false);
+		}
+	}
 
 	return (
 		<Sheet
@@ -68,7 +90,7 @@ export function AppSidebar({ open, onClose, user }: AppSidebarProps) {
 							</Link>
 						);
 					})}
-					{isAdmin(user.role.name) ? (
+					{canAccessAdmin(user.role.name) ? (
 						<Link
 							className={cn(
 								"flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-[var(--sea-ink-soft)] hover:bg-[var(--chip-bg)] hover:text-[var(--sea-ink)]",
@@ -109,6 +131,15 @@ export function AppSidebar({ open, onClose, user }: AppSidebarProps) {
 							/>
 						</div>
 					</Link>
+					<Button
+						className="mt-1 w-full justify-start"
+						disabled={signingOut}
+						onClick={() => void handleSignOut()}
+						variant="ghost"
+					>
+						<LogOut className="size-4" />
+						{signingOut ? "Signing out..." : "Sign out"}
+					</Button>
 				</div>
 			</SheetContent>
 		</Sheet>

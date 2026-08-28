@@ -54,6 +54,10 @@ public class UploadSessionService {
                 .orElseThrow(() -> new IllegalArgumentException("Upload not found"));
     }
 
+    public UploadSession getByUserIdAndUploadId(Long userId, String uploadId) {
+        return uploadSessionRepository.findByUploadIdAndUser_Id(uploadId, userId);
+    }
+
     public Optional<UploadSession> find(String uploadId) {
         return uploadSessionRepository.findById(uploadId);
     }

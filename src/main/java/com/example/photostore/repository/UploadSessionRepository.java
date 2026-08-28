@@ -10,4 +10,5 @@ import com.example.photostore.entity.UploadSession;
 public interface UploadSessionRepository extends JpaRepository<UploadSession, String> {
     List<UploadSession> findByCreatedAtBefore(Instant cutoff);
     List<UploadSession> findByUser_Id(Long userId);
+    UploadSession findByUploadIdAndUser_Id(String uploadId, Long userId);
 }

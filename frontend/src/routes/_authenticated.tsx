@@ -4,7 +4,7 @@ import { useAuthStore } from "#/stores/auth.ts";
 
 export const Route = createFileRoute("/_authenticated")({
 	beforeLoad: ({ context, location }) => {
-		if (!context.auth.adminExists) {
+		if (!context.auth.founderExists) {
 			throw redirect({ to: "/setup" });
 		}
 		if (!context.auth.user) {

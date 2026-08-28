@@ -1,6 +1,6 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { UsersPanel } from "#/components/admin/users-panel.tsx";
-import { isAdmin } from "#/lib/roles.ts";
+import { canAccessAdmin } from "#/lib/roles.ts";
 
 type AdminSearch = {
 	page?: number;
@@ -15,7 +15,7 @@ export const Route = createFileRoute("/_authenticated/admin")({
 		return { page };
 	},
 	beforeLoad: ({ context }) => {
-		if (!isAdmin(context.auth.user?.role.name)) {
+		if (!canAccessAdmin(context.auth.user?.role.name)) {
 			throw redirect({ to: "/" });
 		}
 	},

@@ -30,6 +30,16 @@ export async function updateProfile(input: {
 	}
 }
 
+export async function deleteAccount(password: string) {
+	const response = await apiFetch("/api/v1/user/me", {
+		method: "DELETE",
+		body: JSON.stringify({ password }),
+	});
+	if (!response.ok) {
+		throw await parseApiError(response);
+	}
+}
+
 export async function fetchProfilePicture() {
 	const response = await apiFetch("/api/v1/user/me/profile-picture");
 	if (response.status === 404) {

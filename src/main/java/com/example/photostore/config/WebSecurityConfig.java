@@ -55,8 +55,7 @@ public class WebSecurityConfig {
         .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
         .authorizeHttpRequests(a -> a
                 .requestMatchers("/api/v1/auth/signin").permitAll()
-                .requestMatchers("/api/v1/admin/exists-admin").permitAll()
-                .requestMatchers("/api/v1/admin/create-admin").permitAll()
+                .requestMatchers("/api/v1/founder/**").permitAll()
                 .requestMatchers(
                         "/v3/api-docs",
                         "/v3/api-docs.yaml",
@@ -64,7 +63,7 @@ public class WebSecurityConfig {
                         "/swagger-ui.html",
                         "/swagger-ui/**")
                 .permitAll()
-                .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
+                .requestMatchers("/api/v1/admin/**").hasAnyRole("ADMIN", "FOUNDER")
                 .anyRequest().authenticated());
         http.addFilterBefore(authenticationTokenJwtTokenFilter(), UsernamePasswordAuthenticationFilter.class);
         return http.build();

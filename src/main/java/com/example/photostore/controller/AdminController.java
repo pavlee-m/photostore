@@ -6,8 +6,6 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -24,7 +22,6 @@ import org.springframework.web.multipart.MultipartFile;
 import com.example.photostore.dtos.AdminCreateUserRequest;
 import com.example.photostore.dtos.AdminUpdateUserRequest;
 import com.example.photostore.dtos.PagedResponse;
-import com.example.photostore.dtos.UserCredentialsRequest;
 import com.example.photostore.dtos.UserDTO;
 import com.example.photostore.entity.Role;
 import com.example.photostore.entity.User;
@@ -45,36 +42,6 @@ public class AdminController {
     private RoleService roleService;
     @Autowired
     private StorageService storageService;
-    
-    @PostMapping("/create-admin")
-    public ResponseEntity<String> createAdmin(@RequestBody UserCredentialsRequest createUserRequest, Authentication authentication) {
-        if (userService.existsByRole("ROLE_ADMIN")) {
-            // Check if the sender is admin, if yes, create another admin
-            if (authentication == null || !authentication.isAuthenticated()) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Unauthorized");
-            }
-            else if (!authentication.getAuthorities().contains(new SimpleGrantedAuthority("ROLE_ADMIN"))) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Forbidden");
-            }
-        }
-        if (userService.existsByEmail(createUserRequest.getEmail())) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Email not available!");
-        }
-        Role role = roleService.findByName("ROLE_ADMIN");
-        final User newUser = new User(null, createUserRequest.getEmail(), encoder.encode(createUserRequest.getPassword()), null, 25600.0f, 0.0f, role, null);
-        userService.saveUser(newUser);
-        return ResponseEntity.status(HttpStatus.CREATED).body("Admin created successfully!");
-    }
-
-    // This part is important because the application will initiate creating the
-    // admin user if it doesn't exist.
-    @GetMapping("/exists-admin")
-    public ResponseEntity<String> adminExists() {
-        if (userService.existsByRole("ROLE_ADMIN")) {
-            return ResponseEntity.status(HttpStatus.OK).body("Admin exists!");
-        }
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Admin not found!");
-    }
 
     @GetMapping("/users")
     public ResponseEntity<PagedResponse<UserDTO>> listUsers(
@@ -92,32 +59,49 @@ public class AdminController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Email not available!");
         }
         String roleName = createUserRequest.getRoleName() == null ? "ROLE_USER" : createUserRequest.getRoleName();
+        if (roleName.equals("ROLE_FOUNDER")) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Forbidden");
+        }
         Role userRole = roleService.findByName(roleName);
         float storageSpace = resolveStorageSpace(createUserRequest.getStorage_space());
-        final User newUser = new User(null, createUserRequest.getEmail(), encoder.encode(createUserRequest.getPassword()), null,
-                storageSpace, 0.0f, userRole, null);
+        final User newUser = User.builder()
+                .email(createUserRequest.getEmail())
+                .password(encoder.encode(createUserRequest.getPassword()))
+                .storage_space(storageSpace)
+                .storage_used(0.0f)
+                .role(userRole)
+                .build();
         userService.saveUser(newUser);
         return ResponseEntity.status(HttpStatus.CREATED).body("User registered successfully!");
     }
 
     @DeleteMapping("/delete-user/{id}")
     public ResponseEntity<String> deleteUser(@PathVariable Long id) {
+        if (userService.findById(id).getRole().getName().equals("ROLE_FOUNDER")) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Forbidden");
+        }
         userService.deleteUser(id);
         return ResponseEntity.status(HttpStatus.OK).body("User deleted successfully!");
     }
 
     @PatchMapping(value="/update-user/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    // Figure out the best way to represent this request
     public ResponseEntity<String> updateUserProfile(
             @PathVariable Long id,
             @RequestPart(value = "profile_picture", required = false) MultipartFile profilePicture,
             @RequestPart("user") AdminUpdateUserRequest updateUserRequest) {
+        // Check if the user being edited is the founder
+        if (userService.findById(id).getRole().getName().equals("ROLE_FOUNDER")) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Forbidden");
+        }
         userService.adminUpdateUser(id, updateUserRequest, profilePicture);
         return ResponseEntity.status(HttpStatus.OK).body("User updated successfully!");
     }
 
     @PostMapping("/change-password/{id}")
     public ResponseEntity<String> changePassword(@PathVariable Long id, @RequestBody String newPassword) {
+        if (userService.findById(id).getRole().getName().equals("ROLE_FOUNDER")) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Forbidden");
+        }
         userService.changePassword(id, newPassword);
         return ResponseEntity.status(HttpStatus.OK).body("Password changed successfully!");
     }

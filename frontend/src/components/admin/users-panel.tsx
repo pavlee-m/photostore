@@ -26,7 +26,7 @@ import {
 	TableRow,
 } from "#/components/ui/table.tsx";
 import { toastApiError } from "#/lib/api-error.ts";
-import { formatRole } from "#/lib/roles.ts";
+import { formatRole, isFounder } from "#/lib/roles.ts";
 import { formatStorageMb, storagePercent } from "#/lib/storage.ts";
 import { useAuthStore } from "#/stores/auth.ts";
 import type { User } from "#/types/user.ts";
@@ -145,23 +145,25 @@ export function UsersPanel({
 												</span>
 											</TableCell>
 											<TableCell className="text-right">
-												<div className="flex justify-end gap-2">
-													<Button
-														onClick={() => setEditingUser(user)}
-														size="sm"
-														variant="outline"
-													>
-														Edit
-													</Button>
-													<Button
-														disabled={user.id === currentUserId}
-														onClick={() => setDeletingUser(user)}
-														size="sm"
-														variant="destructive"
-													>
-														Delete
-													</Button>
-												</div>
+												{isFounder(user.role.name) ? null : (
+													<div className="flex justify-end gap-2">
+														<Button
+															onClick={() => setEditingUser(user)}
+															size="sm"
+															variant="outline"
+														>
+															Edit
+														</Button>
+														<Button
+															disabled={user.id === currentUserId}
+															onClick={() => setDeletingUser(user)}
+															size="sm"
+															variant="destructive"
+														>
+															Delete
+														</Button>
+													</div>
+												)}
 											</TableCell>
 										</TableRow>
 									))}

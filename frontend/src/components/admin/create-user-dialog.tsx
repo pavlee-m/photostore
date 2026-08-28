@@ -68,7 +68,7 @@ export function CreateUserDialog({
 				<DialogHeader>
 					<DialogTitle>Add user</DialogTitle>
 					<DialogDescription>
-						Create an account. Only admins can add users.
+						Create a regular user or admin account.
 					</DialogDescription>
 				</DialogHeader>
 				<form

@@ -16,6 +16,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import java.util.List;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
@@ -23,8 +24,6 @@ import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.MediaType;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -72,100 +71,10 @@ class AdminControllerTest {
     @MockitoBean
     private RefreshTokenService refreshTokenService;
 
-    @Test
-    void createAdmin_returnsCreatedWhenNoAdminExists() throws Exception {
-        when(userService.existsByRole("ROLE_ADMIN")).thenReturn(false);
-        when(userService.existsByEmail("admin@example.com")).thenReturn(false);
-        when(roleService.findByName("ROLE_ADMIN")).thenReturn(new Role(1L, "ROLE_ADMIN"));
-        when(encoder.encode("password")).thenReturn("encoded-password");
-
-        mockMvc.perform(post("/api/v1/admin/create-admin")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"email\":\"admin@example.com\",\"password\":\"password\"}"))
-                .andExpect(status().isCreated())
-                .andExpect(content().string("Admin created successfully!"));
-
-        verify(userService).saveUser(any(User.class));
-    }
-
-    @Test
-    void createAdmin_returnsBadRequestWhenEmailTaken() throws Exception {
-        when(userService.existsByRole("ROLE_ADMIN")).thenReturn(false);
-        when(userService.existsByEmail("admin@example.com")).thenReturn(true);
-
-        mockMvc.perform(post("/api/v1/admin/create-admin")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"email\":\"admin@example.com\",\"password\":\"password\"}"))
-                .andExpect(status().isBadRequest())
-                .andExpect(content().string("Email not available!"));
-
-        verify(userService, never()).saveUser(any(User.class));
-    }
-
-    @Test
-    void createAdmin_returnsUnauthorizedWhenAdminExistsAndNotAuthenticated() throws Exception {
-        when(userService.existsByRole("ROLE_ADMIN")).thenReturn(true);
-
-        mockMvc.perform(post("/api/v1/admin/create-admin")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"email\":\"admin@example.com\",\"password\":\"password\"}"))
-                .andExpect(status().isUnauthorized())
-                .andExpect(content().string("Unauthorized"));
-
-        verify(userService, never()).saveUser(any(User.class));
-    }
-
-    @Test
-    void createAdmin_returnsForbiddenWhenAuthenticatedAsNonAdmin() throws Exception {
-        when(userService.existsByRole("ROLE_ADMIN")).thenReturn(true);
-
-        mockMvc.perform(post("/api/v1/admin/create-admin")
-                        .principal(new UsernamePasswordAuthenticationToken(
-                                "user@example.com", null,
-                                List.of(new SimpleGrantedAuthority("ROLE_USER"))))
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"email\":\"admin2@example.com\",\"password\":\"password\"}"))
-                .andExpect(status().isForbidden())
-                .andExpect(content().string("Forbidden"));
-
-        verify(userService, never()).saveUser(any(User.class));
-    }
-
-    @Test
-    void createAdmin_returnsCreatedWhenAuthenticatedAsAdmin() throws Exception {
-        when(userService.existsByRole("ROLE_ADMIN")).thenReturn(true);
-        when(userService.existsByEmail("admin2@example.com")).thenReturn(false);
-        when(roleService.findByName("ROLE_ADMIN")).thenReturn(new Role(1L, "ROLE_ADMIN"));
-        when(encoder.encode("password")).thenReturn("encoded-password");
-
-        mockMvc.perform(post("/api/v1/admin/create-admin")
-                        .principal(new UsernamePasswordAuthenticationToken(
-                                "admin@example.com", null,
-                                List.of(new SimpleGrantedAuthority("ROLE_ADMIN"))))
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"email\":\"admin2@example.com\",\"password\":\"password\"}"))
-                .andExpect(status().isCreated())
-                .andExpect(content().string("Admin created successfully!"));
-
-        verify(userService).saveUser(any(User.class));
-    }
-
-    @Test
-    void existsAdmin_returnsOkWhenAdminExists() throws Exception {
-        when(userService.existsByRole("ROLE_ADMIN")).thenReturn(true);
-
-        mockMvc.perform(get("/api/v1/admin/exists-admin"))
-                .andExpect(status().isOk())
-                .andExpect(content().string("Admin exists!"));
-    }
-
-    @Test
-    void existsAdmin_returnsNotFoundWhenNoAdmin() throws Exception {
-        when(userService.existsByRole("ROLE_ADMIN")).thenReturn(false);
-
-        mockMvc.perform(get("/api/v1/admin/exists-admin"))
-                .andExpect(status().isNotFound())
-                .andExpect(content().string("Admin not found!"));
+    @BeforeEach
+    void mockTargetUserAsNonFounder() {
+        when(userService.findById(any(Long.class)))
+                .thenReturn(User.builder().role(new Role(2L, "ROLE_USER")).build());
     }
 
     @Test

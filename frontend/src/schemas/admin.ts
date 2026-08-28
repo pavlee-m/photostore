@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const createAdminSchema = z
+export const createFounderSchema = z
 	.object({
 		email: z.email("Enter a valid email address"),
 		password: z.string().min(8, "Password must be at least 8 characters"),
@@ -11,4 +11,4 @@ export const createAdminSchema = z
 		path: ["confirmPassword"],
 	});
 
-export type CreateAdminInput = z.infer<typeof createAdminSchema>;
+export type CreateFounderInput = z.infer<typeof createFounderSchema>;

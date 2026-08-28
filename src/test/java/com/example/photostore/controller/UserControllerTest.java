@@ -1,6 +1,7 @@
 package com.example.photostore.controller;
 
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -11,6 +12,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
@@ -23,6 +25,7 @@ import org.springframework.mock.web.MockMultipartFile;
 
 import com.example.photostore.dtos.UserDTO;
 import com.example.photostore.entity.Role;
+import com.example.photostore.entity.User;
 import com.example.photostore.exception.EmailAlreadyExistsException;
 import com.example.photostore.exception.UserNotFoundException;
 import com.example.photostore.service.CustomUserDetailsService;
@@ -44,6 +47,12 @@ class UserControllerTest {
 
     @MockitoBean
     private RefreshTokenService refreshTokenService;
+
+    @BeforeEach
+    void mockCurrentUserAsNonFounder() {
+        when(userService.findById(7L))
+                .thenReturn(User.builder().role(new Role(1L, "ROLE_USER")).build());
+    }
 
     @Test
     void getUserDetails_returnsCurrentUser() throws Exception {
@@ -122,6 +131,22 @@ class UserControllerTest {
                         .content("{\"password\":\"wrong\"}"))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.code").value("INVALID_PASSWORD"));
+    }
+
+    @Test
+    void deleteUser_rejectsFounderAccount() throws Exception {
+        when(userService.findById(7L))
+                .thenReturn(User.builder().role(new Role(3L, "ROLE_FOUNDER")).build());
+
+        mockMvc.perform(delete("/api/v1/user/me")
+                        .principal(authentication())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"password\":\"password\"}"))
+                .andExpect(status().isForbidden())
+                .andExpect(content().string("Founder account cannot be deleted."));
+
+        verify(userService, never()).verifyPassword(7L, "password");
+        verify(userService, never()).deleteUser(7L);
     }
 
     @Test
