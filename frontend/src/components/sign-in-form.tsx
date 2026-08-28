@@ -3,10 +3,15 @@ import { useRouter } from "@tanstack/react-router";
 import { signIn } from "#/api/auth.ts";
 import { ApiError } from "#/api/client.ts";
 import { getCurrentUser } from "#/api/user.ts";
-import { FieldErrors } from "#/components/field-errors.tsx";
 import { Button } from "#/components/ui/button.tsx";
+import {
+	Field,
+	FieldDescription,
+	FieldError,
+	FieldGroup,
+	FieldLabel,
+} from "#/components/ui/field.tsx";
 import { Input } from "#/components/ui/input.tsx";
-import { Label } from "#/components/ui/label.tsx";
 import { toastApiError } from "#/lib/api-error.ts";
 import { safeInternalPath } from "#/lib/form.ts";
 import { signInSchema } from "#/schemas/auth.ts";
@@ -55,47 +60,68 @@ export function SignInForm({ redirectTo }: { redirectTo?: string }) {
 				void form.handleSubmit();
 			}}
 		>
-			<form.Field name="email">
-				{(field) => (
-					<div className="grid gap-2">
-						<Label htmlFor={field.name}>Email</Label>
-						<Input
-							id={field.name}
-							name={field.name}
-							type="email"
-							autoComplete="email"
-							value={field.state.value}
-							onBlur={field.handleBlur}
-							onChange={(event) => field.handleChange(event.target.value)}
-							aria-invalid={field.state.meta.errors.length > 0}
-						/>
-						<FieldErrors errors={field.state.meta.errors} />
-					</div>
-				)}
-			</form.Field>
+			<FieldGroup className="gap-4">
+				<form.Field name="email">
+					{(field) => {
+						const isInvalid =
+							(field.state.meta.isTouched ||
+								form.state.submissionAttempts > 0) &&
+							!field.state.meta.isValid;
 
-			<form.Field name="password">
-				{(field) => (
-					<div className="grid gap-2">
-						<Label htmlFor={field.name}>Password</Label>
-						<Input
-							id={field.name}
-							name={field.name}
-							type="password"
-							autoComplete="current-password"
-							value={field.state.value}
-							onBlur={field.handleBlur}
-							onChange={(event) => field.handleChange(event.target.value)}
-							aria-invalid={field.state.meta.errors.length > 0}
-						/>
-						<FieldErrors errors={field.state.meta.errors} />
-					</div>
-				)}
-			</form.Field>
+						return (
+							<Field data-invalid={isInvalid}>
+								<FieldLabel htmlFor={field.name}>Email</FieldLabel>
+								<Input
+									aria-invalid={isInvalid}
+									id={field.name}
+									name={field.name}
+									type="email"
+									autoComplete="email"
+									value={field.state.value}
+									onBlur={field.handleBlur}
+									onChange={(event) => field.handleChange(event.target.value)}
+								/>
+								<FieldDescription>
+									Use the email address associated with your account.
+								</FieldDescription>
+								{isInvalid && <FieldError errors={field.state.meta.errors} />}
+							</Field>
+						);
+					}}
+				</form.Field>
 
-			<form.Subscribe selector={(state) => state.isSubmitting}>
-				{(isSubmitting) => (
-					<Button type="submit" disabled={isSubmitting}>
+				<form.Field name="password">
+					{(field) => {
+						const isInvalid =
+							(field.state.meta.isTouched ||
+								form.state.submissionAttempts > 0) &&
+							!field.state.meta.isValid;
+
+						return (
+							<Field data-invalid={isInvalid}>
+								<FieldLabel htmlFor={field.name}>Password</FieldLabel>
+								<Input
+									aria-invalid={isInvalid}
+									id={field.name}
+									name={field.name}
+									type="password"
+									autoComplete="current-password"
+									value={field.state.value}
+									onBlur={field.handleBlur}
+									onChange={(event) => field.handleChange(event.target.value)}
+								/>
+								{isInvalid && <FieldError errors={field.state.meta.errors} />}
+							</Field>
+						);
+					}}
+				</form.Field>
+			</FieldGroup>
+
+			<form.Subscribe
+				selector={(state) => [state.canSubmit, state.isSubmitting]}
+			>
+				{([canSubmit, isSubmitting]) => (
+					<Button type="submit" disabled={!canSubmit || isSubmitting}>
 						{isSubmitting ? "Signing in..." : "Sign in"}
 					</Button>
 				)}

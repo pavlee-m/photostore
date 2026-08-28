@@ -1,12 +1,15 @@
 import { useInfiniteQuery } from "@tanstack/react-query";
+import { Images } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { listMedia } from "#/api/media.ts";
 import { AddToAlbumDialog } from "#/components/add-to-album-dialog.tsx";
 import { DeleteMediaDialog } from "#/components/delete-media-dialog.tsx";
+import { EmptyState } from "#/components/empty-state.tsx";
 import { MediaGridSkeleton } from "#/components/library-skeletons.tsx";
 import { LoadErrorState } from "#/components/load-error-state.tsx";
 import { MediaThumb } from "#/components/media-thumb.tsx";
 import { MediaViewer } from "#/components/media-viewer.tsx";
+import { PageHeader } from "#/components/page-header.tsx";
 import { Skeleton } from "#/components/ui/skeleton.tsx";
 import { groupMediaByDate } from "#/lib/dates.ts";
 import type { MediaFile } from "#/types/media.ts";
@@ -57,7 +60,10 @@ export function PhotosLibrary() {
 	if (mediaQuery.isLoading) {
 		return (
 			<main className="w-full px-4 py-8 sm:px-6 lg:px-8">
-				<Skeleton className="mb-4 h-8 w-40" />
+				<div className="mb-8 grid gap-2">
+					<Skeleton className="h-8 w-40" />
+					<Skeleton className="h-5 w-72 max-w-full" />
+				</div>
 				<MediaGridSkeleton />
 			</main>
 		);
@@ -69,25 +75,33 @@ export function PhotosLibrary() {
 
 	if (items.length === 0) {
 		return (
-			<main className="flex min-h-[calc(100svh-4rem)] items-center justify-center p-6">
-				<section className="max-w-md text-center">
-					<p className="island-kicker">Getting started</p>
-					<h2 className="display-title mt-3 text-4xl">Add your first photos</h2>
-					<p className="mt-3 text-[var(--sea-ink-soft)]">
-						Your library is empty. Use the Upload button in the top bar to add
-						images or short videos, then they will show up here by date.
-					</p>
-				</section>
+			<main className="w-full px-4 py-8 sm:px-6 lg:px-8">
+				<PageHeader
+					description="Browse and organize every photo and video you upload."
+					title="Photos"
+				/>
+				<EmptyState
+					className="min-h-[50svh] border"
+					description="Use the Upload button in the top bar to add images or short videos. They will appear here organized by date."
+					icon={Images}
+					title="Add your first photos"
+				/>
 			</main>
 		);
 	}
 
 	return (
 		<main className="w-full px-4 py-8 sm:px-6 lg:px-8">
+			<PageHeader
+				description="Browse and organize every photo and video you upload."
+				title="Photos"
+			/>
 			<div className="grid gap-10">
 				{groups.map((group) => (
 					<section key={group.dateKey}>
-						<h2 className="display-title text-2xl">{group.label}</h2>
+						<h2 className="text-lg font-semibold tracking-tight">
+							{group.label}
+						</h2>
 						<div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7">
 							{group.items.map((media) => (
 								<MediaThumb
@@ -104,7 +118,7 @@ export function PhotosLibrary() {
 			</div>
 			<div className="h-12" ref={sentinelRef} />
 			{mediaQuery.isFetchingNextPage ? (
-				<p className="pb-8 text-center text-sm text-[var(--sea-ink-soft)]">
+				<p className="pb-8 text-center text-sm text-muted-foreground">
 					Loading more...
 				</p>
 			) : null}

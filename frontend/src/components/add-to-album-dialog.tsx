@@ -1,7 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { CircleAlert, FolderOpen } from "lucide-react";
 import { toast } from "sonner";
 import { addMediaToAlbum, listAlbums } from "#/api/album.ts";
 import { AlbumCover } from "#/components/album-cover.tsx";
+import { EmptyState } from "#/components/empty-state.tsx";
 import { Button } from "#/components/ui/button.tsx";
 import {
 	Dialog,
@@ -60,12 +62,19 @@ export function AddToAlbumDialog({
 						))}
 					</div>
 				) : albumsQuery.isError ? (
-					<p className="text-destructive text-sm">Could not load albums.</p>
+					<EmptyState
+						className="border py-8"
+						description="Close this dialog and try again."
+						icon={CircleAlert}
+						title="Could not load albums"
+					/>
 				) : !albumsQuery.data?.length ? (
-					<p className="text-sm text-[var(--sea-ink-soft)]">
-						You do not have any albums yet. Create one from the Albums page,
-						then come back and add this photo.
-					</p>
+					<EmptyState
+						className="border py-8"
+						description="Create an album from the Albums page, then come back to add this item."
+						icon={FolderOpen}
+						title="No albums yet"
+					/>
 				) : (
 					<ScrollArea className="h-[60vh] max-h-96">
 						<div className="grid grid-cols-2 gap-3 pr-3 sm:grid-cols-3">

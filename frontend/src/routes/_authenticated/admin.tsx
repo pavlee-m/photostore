@@ -28,7 +28,7 @@ function AdminPage() {
 	const currentUser = Route.useRouteContext().auth.user;
 
 	return (
-		<main className="page-wrap py-10">
+		<main className="page-wrap py-8 sm:py-10">
 			<UsersPanel
 				currentUserId={currentUser?.id ?? 0}
 				onPageChange={(nextPage) => {

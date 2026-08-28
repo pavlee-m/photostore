@@ -17,7 +17,7 @@ export function AlbumCover({
 		return (
 			<div
 				className={cn(
-					"flex size-full items-center justify-center bg-[color-mix(in_oklab,var(--chip-bg)_80%,black)] text-[var(--sea-ink-soft)]",
+					"flex size-full items-center justify-center bg-muted text-muted-foreground",
 					className,
 				)}
 			>

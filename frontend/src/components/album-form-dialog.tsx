@@ -1,5 +1,5 @@
 import { useForm } from "@tanstack/react-form";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { createAlbum, updateAlbum } from "#/api/album.ts";
 import { AlbumCover } from "#/components/album-cover.tsx";
@@ -14,6 +14,7 @@ import {
 } from "#/components/ui/dialog.tsx";
 import {
 	Field,
+	FieldDescription,
 	FieldError,
 	FieldGroup,
 	FieldLabel,
@@ -39,6 +40,7 @@ export function AlbumFormDialog({
 	onSaved,
 }: AlbumFormDialogProps) {
 	const editing = album != null;
+	const coverInputRef = useRef<HTMLInputElement>(null);
 	const form = useForm({
 		defaultValues: {
 			name: album?.name ?? "",
@@ -62,7 +64,6 @@ export function AlbumFormDialog({
 					forgetAlbumCoverUrl(album.id);
 				}
 				await onSaved(saved);
-				form.reset();
 				onOpenChange(false);
 				toast.success(editing ? "Album updated." : "Album created.");
 			} catch (error) {
@@ -83,11 +84,26 @@ export function AlbumFormDialog({
 				description: album?.description ?? "",
 				cover: null,
 			});
+			if (coverInputRef.current) {
+				coverInputRef.current.value = "";
+			}
 		}
 	}, [album, form, open]);
 
 	return (
-		<Dialog onOpenChange={onOpenChange} open={open}>
+		<Dialog
+			onOpenChange={(nextOpen) => {
+				if (!nextOpen) {
+					form.reset({
+						name: album?.name ?? "",
+						description: album?.description ?? "",
+						cover: null,
+					});
+				}
+				onOpenChange(nextOpen);
+			}}
+			open={open}
+		>
 			<DialogContent>
 				<DialogHeader>
 					<DialogTitle>{editing ? "Edit album" : "Create album"}</DialogTitle>
@@ -107,68 +123,103 @@ export function AlbumFormDialog({
 				>
 					<FieldGroup className="gap-4">
 						<form.Field name="name">
-							{(field) => (
-								<Field data-invalid={field.state.meta.errors.length > 0}>
-									<FieldLabel htmlFor={field.name}>Name</FieldLabel>
-									<Input
-										aria-invalid={field.state.meta.errors.length > 0}
-										autoFocus
-										id={field.name}
-										maxLength={255}
-										name={field.name}
-										onBlur={field.handleBlur}
-										onChange={(event) => field.handleChange(event.target.value)}
-										placeholder="Summer vacation"
-										value={field.state.value}
-									/>
-									<FieldError errors={field.state.meta.errors} />
-								</Field>
-							)}
+							{(field) => {
+								const isInvalid =
+									(field.state.meta.isTouched ||
+										form.state.submissionAttempts > 0) &&
+									!field.state.meta.isValid;
+								return (
+									<Field data-invalid={isInvalid}>
+										<FieldLabel htmlFor={field.name}>Name</FieldLabel>
+										<Input
+											aria-invalid={isInvalid}
+											autoFocus
+											id={field.name}
+											maxLength={255}
+											name={field.name}
+											onBlur={field.handleBlur}
+											onChange={(event) =>
+												field.handleChange(event.target.value)
+											}
+											placeholder="Summer vacation"
+											value={field.state.value}
+										/>
+										{isInvalid && (
+											<FieldError errors={field.state.meta.errors} />
+										)}
+									</Field>
+								);
+							}}
 						</form.Field>
 						<form.Field name="description">
-							{(field) => (
-								<Field data-invalid={field.state.meta.errors.length > 0}>
-									<FieldLabel htmlFor={field.name}>Description</FieldLabel>
-									<Textarea
-										aria-invalid={field.state.meta.errors.length > 0}
-										id={field.name}
-										maxLength={255}
-										name={field.name}
-										onBlur={field.handleBlur}
-										onChange={(event) => field.handleChange(event.target.value)}
-										placeholder="A few words about this collection"
-										rows={3}
-										value={field.state.value}
-									/>
-									<FieldError errors={field.state.meta.errors} />
-								</Field>
-							)}
+							{(field) => {
+								const isInvalid =
+									(field.state.meta.isTouched ||
+										form.state.submissionAttempts > 0) &&
+									!field.state.meta.isValid;
+								return (
+									<Field data-invalid={isInvalid}>
+										<FieldLabel htmlFor={field.name}>Description</FieldLabel>
+										<Textarea
+											aria-invalid={isInvalid}
+											id={field.name}
+											maxLength={255}
+											name={field.name}
+											onBlur={field.handleBlur}
+											onChange={(event) =>
+												field.handleChange(event.target.value)
+											}
+											placeholder="A few words about this collection"
+											rows={3}
+											value={field.state.value}
+										/>
+										<FieldDescription>
+											Optional, up to 255 characters.
+										</FieldDescription>
+										{isInvalid && (
+											<FieldError errors={field.state.meta.errors} />
+										)}
+									</Field>
+								);
+							}}
 						</form.Field>
 						<form.Field name="cover">
-							{(field) => (
-								<Field data-invalid={field.state.meta.errors.length > 0}>
-									<FieldLabel htmlFor={field.name}>
-										{editing ? "New cover" : "Cover"}
-									</FieldLabel>
-									{editing && album.coverPhotoUrl && !field.state.value ? (
-										<div className="aspect-[3/1] overflow-hidden rounded-lg">
-											<AlbumCover album={album} />
-										</div>
-									) : null}
-									<Input
-										aria-invalid={field.state.meta.errors.length > 0}
-										accept=".jpg,.jpeg,.png,.bmp,.gif,image/*"
-										id={field.name}
-										name={field.name}
-										onBlur={field.handleBlur}
-										onChange={(event) =>
-											field.handleChange(event.target.files?.[0] ?? null)
-										}
-										type="file"
-									/>
-									<FieldError errors={field.state.meta.errors} />
-								</Field>
-							)}
+							{(field) => {
+								const isInvalid =
+									(field.state.meta.isTouched ||
+										form.state.submissionAttempts > 0) &&
+									!field.state.meta.isValid;
+								return (
+									<Field data-invalid={isInvalid}>
+										<FieldLabel htmlFor={field.name}>
+											{editing ? "New cover" : "Cover"}
+										</FieldLabel>
+										{editing && album.coverPhotoUrl && !field.state.value ? (
+											<div className="aspect-[3/1] overflow-hidden rounded-lg">
+												<AlbumCover album={album} />
+											</div>
+										) : null}
+										<Input
+											aria-invalid={isInvalid}
+											accept=".jpg,.jpeg,.png,.bmp,.gif,image/*"
+											id={field.name}
+											name={field.name}
+											onBlur={field.handleBlur}
+											onChange={(event) =>
+												field.handleChange(event.target.files?.[0] ?? null)
+											}
+											ref={coverInputRef}
+											type="file"
+										/>
+										<FieldDescription>
+											JPG, PNG, BMP, and GIF images are supported.
+										</FieldDescription>
+										{isInvalid && (
+											<FieldError errors={field.state.meta.errors} />
+										)}
+									</Field>
+								);
+							}}
 						</form.Field>
 					</FieldGroup>
 					<DialogFooter>
@@ -179,9 +230,11 @@ export function AlbumFormDialog({
 						>
 							Cancel
 						</Button>
-						<form.Subscribe selector={(state) => state.isSubmitting}>
-							{(isSubmitting) => (
-								<Button disabled={isSubmitting} type="submit">
+						<form.Subscribe
+							selector={(state) => [state.canSubmit, state.isSubmitting]}
+						>
+							{([canSubmit, isSubmitting]) => (
+								<Button disabled={!canSubmit || isSubmitting} type="submit">
 									{isSubmitting
 										? editing
 											? "Saving..."

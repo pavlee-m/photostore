@@ -6,8 +6,11 @@ import { getCurrentUser } from "#/api/user.ts";
 import { CreateUserDialog } from "#/components/admin/create-user-dialog.tsx";
 import { EditUserDialog } from "#/components/admin/edit-user-dialog.tsx";
 import { ConfirmationDialog } from "#/components/confirmation-dialog.tsx";
+import { PageHeader } from "#/components/page-header.tsx";
 import { Alert, AlertDescription, AlertTitle } from "#/components/ui/alert.tsx";
+import { Badge } from "#/components/ui/badge.tsx";
 import { Button } from "#/components/ui/button.tsx";
+import { Card, CardContent } from "#/components/ui/card.tsx";
 import {
 	Pagination,
 	PaginationContent,
@@ -87,135 +90,154 @@ export function UsersPanel({
 	);
 
 	return (
-		<section className="island-shell rounded-2xl p-6">
-			<div className="flex flex-wrap items-center justify-between gap-3">
-				<div>
-					<p className="island-kicker">Users</p>
-					<h2 className="display-title mt-1 text-2xl">Manage accounts</h2>
-				</div>
-				<Button onClick={() => setCreateOpen(true)}>Add user</Button>
-			</div>
-
-			{usersQuery.isLoading ? (
-				<output aria-label="Loading users" className="mt-6 grid gap-3">
-					{["one", "two", "three", "four", "five"].map((id) => (
-						<Skeleton className="h-11 w-full" key={id} />
-					))}
-				</output>
-			) : usersQuery.isError ? (
-				<Alert className="mt-6" variant="destructive">
-					<AlertCircle />
-					<AlertTitle>Could not load users</AlertTitle>
-					<AlertDescription>
-						Refresh the page or try again in a moment.
-					</AlertDescription>
-				</Alert>
-			) : (
-				<div className="mt-6">
-					<ScrollArea className="w-full">
-						<div className="min-w-3xl">
-							<Table>
-								<TableHeader>
-									<TableRow>
-										<TableHead>Email</TableHead>
-										<TableHead>Role</TableHead>
-										<TableHead>Storage</TableHead>
-										<TableHead>Used</TableHead>
-										<TableHead className="text-right">Actions</TableHead>
-									</TableRow>
-								</TableHeader>
-								<TableBody>
-									{pageData?.content.map((user) => (
-										<TableRow key={user.id}>
-											<TableCell className="font-medium">
-												{user.email}
-											</TableCell>
-											<TableCell>{formatRole(user.role.name)}</TableCell>
-											<TableCell>
-												{formatStorageMb(user.storage_space)}
-											</TableCell>
-											<TableCell>
-												{storagePercent(
-													user.storage_used ?? 0,
-													user.storage_space,
-												)}
-												%
-												<span className="ml-1 text-muted-foreground">
-													({formatStorageMb(user.storage_used ?? 0)})
-												</span>
-											</TableCell>
-											<TableCell className="text-right">
-												{isFounder(user.role.name) ? null : (
-													<div className="flex justify-end gap-2">
-														<Button
-															onClick={() => setEditingUser(user)}
-															size="sm"
-															variant="outline"
-														>
-															Edit
-														</Button>
-														<Button
-															disabled={user.id === currentUserId}
-															onClick={() => setDeletingUser(user)}
-															size="sm"
-															variant="destructive"
-														>
-															Delete
-														</Button>
-													</div>
-												)}
-											</TableCell>
+		<section>
+			<PageHeader
+				actions={<Button onClick={() => setCreateOpen(true)}>Add user</Button>}
+				description="Create accounts, assign roles, and review storage usage."
+				eyebrow="Users"
+				title="Manage accounts"
+			/>
+			<Card className="gap-0 overflow-hidden py-0">
+				{usersQuery.isLoading ? (
+					<CardContent className="py-6">
+						<output aria-label="Loading users" className="grid gap-3">
+							{["one", "two", "three", "four", "five"].map((id) => (
+								<Skeleton className="h-11 w-full" key={id} />
+							))}
+						</output>
+					</CardContent>
+				) : usersQuery.isError ? (
+					<CardContent className="py-6">
+						<Alert variant="destructive">
+							<AlertCircle />
+							<AlertTitle>Could not load users</AlertTitle>
+							<AlertDescription>
+								Refresh the page or try again in a moment.
+							</AlertDescription>
+						</Alert>
+					</CardContent>
+				) : (
+					<>
+						<ScrollArea className="w-full">
+							<div className="min-w-[44rem]">
+								<Table>
+									<TableHeader>
+										<TableRow>
+											<TableHead>Email</TableHead>
+											<TableHead>Role</TableHead>
+											<TableHead>Storage</TableHead>
+											<TableHead>Used</TableHead>
+											<TableHead className="text-right">Actions</TableHead>
 										</TableRow>
-									))}
-								</TableBody>
-							</Table>
+									</TableHeader>
+									<TableBody>
+										{pageData?.content.map((user) => (
+											<TableRow key={user.id}>
+												<TableCell className="max-w-64 font-medium">
+													<span className="block truncate" title={user.email}>
+														{user.email}
+													</span>
+												</TableCell>
+												<TableCell>
+													<Badge variant="secondary">
+														{formatRole(user.role.name)}
+													</Badge>
+												</TableCell>
+												<TableCell>
+													{formatStorageMb(user.storage_space)}
+												</TableCell>
+												<TableCell>
+													{storagePercent(
+														user.storage_used ?? 0,
+														user.storage_space,
+													)}
+													%
+													<span className="ml-1 text-muted-foreground">
+														({formatStorageMb(user.storage_used ?? 0)})
+													</span>
+												</TableCell>
+												<TableCell className="text-right">
+													{isFounder(user.role.name) ? null : (
+														<div className="flex flex-wrap justify-end gap-2">
+															<Button
+																onClick={() => setEditingUser(user)}
+																size="sm"
+																variant="outline"
+															>
+																Edit
+															</Button>
+															<Button
+																disabled={user.id === currentUserId}
+																onClick={() => setDeletingUser(user)}
+																size="sm"
+																variant="destructive"
+															>
+																Delete
+															</Button>
+														</div>
+													)}
+												</TableCell>
+											</TableRow>
+										))}
+									</TableBody>
+								</Table>
+							</div>
+							<ScrollBar orientation="horizontal" />
+						</ScrollArea>
+						<div className="flex flex-col gap-3 border-t px-4 py-3 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between sm:px-6">
+							<p aria-live="polite">
+								Page {pageData ? pageData.page + 1 : 1} of{" "}
+								{pageData && pageData.totalPages > 0 ? pageData.totalPages : 1}
+							</p>
+							<Pagination
+								aria-label="User list pages"
+								className="mx-0 w-auto justify-start sm:justify-end"
+							>
+								<PaginationContent>
+									<PaginationItem>
+										<PaginationPrevious
+											aria-disabled={!hasPreviousPage}
+											aria-label={`Go to previous page, page ${page}`}
+											className={
+												hasPreviousPage
+													? undefined
+													: "pointer-events-none opacity-50"
+											}
+											href={hasPreviousPage ? `?page=${page - 1}` : "#"}
+											onClick={(event) => {
+												event.preventDefault();
+												if (hasPreviousPage) {
+													onPageChange(page - 1);
+												}
+											}}
+											tabIndex={hasPreviousPage ? undefined : -1}
+										/>
+									</PaginationItem>
+									<PaginationItem>
+										<PaginationNext
+											aria-disabled={!hasNextPage}
+											aria-label={`Go to next page, page ${page + 2}`}
+											className={
+												hasNextPage
+													? undefined
+													: "pointer-events-none opacity-50"
+											}
+											href={hasNextPage ? `?page=${page + 1}` : "#"}
+											onClick={(event) => {
+												event.preventDefault();
+												if (hasNextPage) {
+													onPageChange(page + 1);
+												}
+											}}
+											tabIndex={hasNextPage ? undefined : -1}
+										/>
+									</PaginationItem>
+								</PaginationContent>
+							</Pagination>
 						</div>
-						<ScrollBar orientation="horizontal" />
-					</ScrollArea>
-					<div className="mt-4 flex items-center justify-between text-sm text-[var(--sea-ink-soft)]">
-						<p>
-							Page {pageData ? pageData.page + 1 : 1} of{" "}
-							{pageData && pageData.totalPages > 0 ? pageData.totalPages : 1}
-						</p>
-						<Pagination className="mx-0 w-auto justify-end">
-							<PaginationContent>
-								<PaginationItem>
-									<PaginationPrevious
-										aria-disabled={!hasPreviousPage}
-										className={
-											hasPreviousPage
-												? undefined
-												: "pointer-events-none opacity-50"
-										}
-										href={hasPreviousPage ? `?page=${page - 1}` : "#"}
-										onClick={(event) => {
-											event.preventDefault();
-											if (hasPreviousPage) {
-												onPageChange(page - 1);
-											}
-										}}
-									/>
-								</PaginationItem>
-								<PaginationItem>
-									<PaginationNext
-										aria-disabled={!hasNextPage}
-										className={
-											hasNextPage ? undefined : "pointer-events-none opacity-50"
-										}
-										href={hasNextPage ? `?page=${page + 1}` : "#"}
-										onClick={(event) => {
-											event.preventDefault();
-											if (hasNextPage) {
-												onPageChange(page + 1);
-											}
-										}}
-									/>
-								</PaginationItem>
-							</PaginationContent>
-						</Pagination>
-					</div>
-				</div>
-			)}
+					</>
+				)}
+			</Card>
 
 			<CreateUserDialog
 				onCreated={refreshUsers}

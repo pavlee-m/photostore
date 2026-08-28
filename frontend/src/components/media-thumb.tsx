@@ -1,4 +1,11 @@
-import { FolderMinus, FolderPlus, Play, Trash2 } from "lucide-react";
+import {
+	FolderMinus,
+	FolderPlus,
+	MoreHorizontal,
+	Play,
+	Trash2,
+} from "lucide-react";
+import { Button } from "#/components/ui/button.tsx";
 import {
 	ContextMenu,
 	ContextMenuContent,
@@ -6,6 +13,13 @@ import {
 	ContextMenuSeparator,
 	ContextMenuTrigger,
 } from "#/components/ui/context-menu.tsx";
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuSeparator,
+	DropdownMenuTrigger,
+} from "#/components/ui/dropdown-menu.tsx";
 import { Skeleton } from "#/components/ui/skeleton.tsx";
 import { useInView } from "#/hooks/use-in-view.ts";
 import { useMediaObjectUrl } from "#/hooks/use-media-object-url.ts";
@@ -31,23 +45,58 @@ export function MediaThumb({
 		"thumb",
 		visible && !isVideo,
 	);
+	const hasActions = onAddToAlbum || onRemoveFromAlbum || onDelete;
+
+	function deferAction(action: (media: MediaFile) => void) {
+		window.setTimeout(() => action(media), 0);
+	}
+
+	const actions = (
+		<>
+			{onAddToAlbum ? (
+				<DropdownMenuItem onSelect={() => deferAction(onAddToAlbum)}>
+					<FolderPlus />
+					Add to album
+				</DropdownMenuItem>
+			) : null}
+			{onRemoveFromAlbum ? (
+				<DropdownMenuItem onSelect={() => deferAction(onRemoveFromAlbum)}>
+					<FolderMinus />
+					Remove from album
+				</DropdownMenuItem>
+			) : null}
+			{onDelete && (onAddToAlbum || onRemoveFromAlbum) ? (
+				<DropdownMenuSeparator />
+			) : null}
+			{onDelete ? (
+				<DropdownMenuItem
+					onSelect={() => deferAction(onDelete)}
+					variant="destructive"
+				>
+					<Trash2 />
+					Delete
+				</DropdownMenuItem>
+			) : null}
+		</>
+	);
 
 	return (
-		<div ref={setNode}>
+		<div className="group relative" ref={setNode}>
 			<ContextMenu>
 				<ContextMenuTrigger asChild>
 					<button
-						className="aspect-square w-full cursor-pointer overflow-hidden rounded-xl bg-[color-mix(in_oklab,var(--chip-bg)_80%,black)]"
+						aria-label={`Open ${media.name}`}
+						className="aspect-square w-full cursor-pointer overflow-hidden rounded-lg border bg-muted transition-colors outline-none hover:border-foreground/20 focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
 						onClick={() => onOpen(media)}
 						type="button"
 					>
 						{isVideo ? (
-							<span className="flex size-full flex-col items-center justify-center gap-1 text-[var(--sea-ink-soft)]">
+							<span className="flex size-full flex-col items-center justify-center gap-1 text-muted-foreground">
 								<Play className="size-8 fill-current" />
 								<span className="px-2 text-xs">Video</span>
 							</span>
 						) : error ? (
-							<span className="flex size-full items-center justify-center px-2 text-xs text-[var(--sea-ink-soft)]">
+							<span className="flex size-full items-center justify-center px-2 text-xs text-muted-foreground">
 								Could not load
 							</span>
 						) : !url ? (
@@ -99,6 +148,21 @@ export function MediaThumb({
 					) : null}
 				</ContextMenuContent>
 			</ContextMenu>
+			{hasActions ? (
+				<DropdownMenu>
+					<DropdownMenuTrigger asChild>
+						<Button
+							aria-label={`Actions for ${media.name}`}
+							className="absolute top-2 right-2 size-8 bg-background/90 opacity-0 shadow-sm backdrop-blur-sm transition-opacity hover:bg-background group-focus-within:opacity-100 group-hover:opacity-100 data-[state=open]:opacity-100"
+							size="icon"
+							variant="outline"
+						>
+							<MoreHorizontal />
+						</Button>
+					</DropdownMenuTrigger>
+					<DropdownMenuContent align="end">{actions}</DropdownMenuContent>
+				</DropdownMenu>
+			) : null}
 		</div>
 	);
 }

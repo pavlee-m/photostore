@@ -35,7 +35,7 @@ export function UserAvatar({
 	return (
 		<Avatar className={dimension}>
 			{src ? <AvatarImage alt="" className="object-cover" src={src} /> : null}
-			<AvatarFallback className="bg-[color-mix(in_oklab,var(--lagoon)_28%,var(--foam))] font-semibold text-[var(--sea-ink)]">
+			<AvatarFallback className="bg-muted font-semibold text-muted-foreground">
 				{initialsFor(user.email)}
 			</AvatarFallback>
 		</Avatar>
@@ -48,7 +48,7 @@ export function StorageMeter({ used, total }: { used: number; total: number }) {
 	return (
 		<div className="grid gap-1.5">
 			<Progress value={percent} />
-			<p className="text-xs text-[var(--sea-ink-soft)]">
+			<p className="text-xs text-muted-foreground">
 				{percent}% used · {formatStorageMb(used)} of {formatStorageMb(total)}
 			</p>
 		</div>

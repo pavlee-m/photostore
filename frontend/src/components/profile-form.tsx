@@ -3,10 +3,15 @@ import { Camera } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { getCurrentUser, updateProfile } from "#/api/user.ts";
-import { FieldErrors } from "#/components/field-errors.tsx";
 import { Button } from "#/components/ui/button.tsx";
+import {
+	Field,
+	FieldDescription,
+	FieldError,
+	FieldGroup,
+	FieldLabel,
+} from "#/components/ui/field.tsx";
 import { Input } from "#/components/ui/input.tsx";
-import { Label } from "#/components/ui/label.tsx";
 import { UserAvatar } from "#/components/user-avatar.tsx";
 import { forgetProfilePicture } from "#/hooks/use-profile-picture.ts";
 import { toastApiError } from "#/lib/api-error.ts";
@@ -79,13 +84,13 @@ export function ProfileForm({ user }: { user: User }) {
 					type="button"
 				>
 					<UserAvatar previewSrc={previewSrc} size="lg" user={user} />
-					<span className="absolute right-0 bottom-0 flex size-8 items-center justify-center rounded-full bg-[var(--lagoon)] text-white">
+					<span className="absolute right-0 bottom-0 flex size-8 items-center justify-center rounded-full bg-primary text-primary-foreground">
 						<Camera className="size-4" />
 					</span>
 				</button>
 				<div>
 					<p className="text-sm font-medium">Profile picture</p>
-					<p className="mt-1 text-xs text-[var(--sea-ink-soft)]">
+					<p className="mt-1 text-xs text-muted-foreground">
 						JPG, PNG, GIF, or BMP. Click the photo to change it.
 					</p>
 				</div>
@@ -99,26 +104,40 @@ export function ProfileForm({ user }: { user: User }) {
 					type="file"
 				/>
 			</div>
-			<form.Field name="email">
-				{(field) => (
-					<div className="grid gap-2">
-						<Label htmlFor={field.name}>Email</Label>
-						<Input
-							autoComplete="email"
-							id={field.name}
-							name={field.name}
-							onBlur={field.handleBlur}
-							onChange={(event) => field.handleChange(event.target.value)}
-							type="email"
-							value={field.state.value}
-						/>
-						<FieldErrors errors={field.state.meta.errors} />
-					</div>
-				)}
-			</form.Field>
-			<form.Subscribe selector={(state) => state.isSubmitting}>
-				{(isSubmitting) => (
-					<Button disabled={isSubmitting} type="submit">
+			<FieldGroup>
+				<form.Field name="email">
+					{(field) => {
+						const isInvalid =
+							(field.state.meta.isTouched ||
+								form.state.submissionAttempts > 0) &&
+							!field.state.meta.isValid;
+						return (
+							<Field data-invalid={isInvalid}>
+								<FieldLabel htmlFor={field.name}>Email</FieldLabel>
+								<Input
+									aria-invalid={isInvalid}
+									autoComplete="email"
+									id={field.name}
+									name={field.name}
+									onBlur={field.handleBlur}
+									onChange={(event) => field.handleChange(event.target.value)}
+									type="email"
+									value={field.state.value}
+								/>
+								<FieldDescription>
+									This address is used to sign in to your account.
+								</FieldDescription>
+								{isInvalid && <FieldError errors={field.state.meta.errors} />}
+							</Field>
+						);
+					}}
+				</form.Field>
+			</FieldGroup>
+			<form.Subscribe
+				selector={(state) => [state.canSubmit, state.isSubmitting]}
+			>
+				{([canSubmit, isSubmitting]) => (
+					<Button disabled={!canSubmit || isSubmitting} type="submit">
 						{isSubmitting ? "Saving..." : "Save changes"}
 					</Button>
 				)}

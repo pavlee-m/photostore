@@ -1,3 +1,4 @@
+import { TriangleAlert } from "lucide-react";
 import type { ReactNode } from "react";
 import {
 	AlertDialog,
@@ -6,6 +7,7 @@ import {
 	AlertDialogDescription,
 	AlertDialogFooter,
 	AlertDialogHeader,
+	AlertDialogMedia,
 	AlertDialogTitle,
 } from "#/components/ui/alert-dialog.tsx";
 import { Button } from "#/components/ui/button.tsx";
@@ -38,8 +40,11 @@ export function ConfirmationDialog({
 			}}
 			open={open}
 		>
-			<AlertDialogContent>
+			<AlertDialogContent className="border-destructive/30">
 				<AlertDialogHeader>
+					<AlertDialogMedia className="bg-destructive/10 text-destructive">
+						<TriangleAlert />
+					</AlertDialogMedia>
 					<AlertDialogTitle>{title}</AlertDialogTitle>
 					<AlertDialogDescription asChild>
 						<div>{description}</div>

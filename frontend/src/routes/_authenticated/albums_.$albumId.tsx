@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowLeft, Images } from "lucide-react";
+import { FolderX, Images } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
@@ -10,10 +10,21 @@ import {
 } from "#/api/album.ts";
 import { AddToAlbumDialog } from "#/components/add-to-album-dialog.tsx";
 import { DeleteMediaDialog } from "#/components/delete-media-dialog.tsx";
+import { EmptyState } from "#/components/empty-state.tsx";
 import { MediaGridSkeleton } from "#/components/library-skeletons.tsx";
 import { LoadErrorState } from "#/components/load-error-state.tsx";
 import { MediaThumb } from "#/components/media-thumb.tsx";
 import { MediaViewer } from "#/components/media-viewer.tsx";
+import { PageHeader } from "#/components/page-header.tsx";
+import {
+	Breadcrumb,
+	BreadcrumbItem,
+	BreadcrumbLink,
+	BreadcrumbList,
+	BreadcrumbPage,
+	BreadcrumbSeparator,
+} from "#/components/ui/breadcrumb.tsx";
+import { Button } from "#/components/ui/button.tsx";
 import { Skeleton } from "#/components/ui/skeleton.tsx";
 import { toastApiError } from "#/lib/api-error.ts";
 import type { MediaFile } from "#/types/media.ts";
@@ -108,55 +119,48 @@ function AlbumPhotosPage() {
 
 	if (!Number.isSafeInteger(albumId) || albumId <= 0 || !album) {
 		return (
-			<main className="flex min-h-[calc(100svh-4rem)] items-center justify-center p-6">
-				<section className="text-center">
-					<h2 className="display-title text-3xl">Album not found</h2>
-					<p className="mt-2 text-(--sea-ink-soft)">
-						This album may have been deleted.
-					</p>
-					<Link
-						className="mt-5 inline-flex items-center gap-2 font-medium"
-						to="/albums"
-					>
-						<ArrowLeft className="size-4" />
-						Back to albums
-					</Link>
-				</section>
+			<main className="w-full px-4 py-8 sm:px-6 lg:px-8">
+				<EmptyState
+					action={
+						<Button asChild variant="outline">
+							<Link to="/albums">Back to albums</Link>
+						</Button>
+					}
+					className="min-h-[55svh] border"
+					description="This album may have been deleted or is no longer available."
+					icon={FolderX}
+					title="Album not found"
+				/>
 			</main>
 		);
 	}
 
 	return (
 		<main className="w-full px-4 py-8 sm:px-6 lg:px-8">
-			<header className="mb-7">
-				<Link
-					className="inline-flex items-center gap-2 text-sm font-medium no-underline"
-					to="/albums"
-				>
-					<ArrowLeft className="size-4" />
-					Albums
-				</Link>
-				<h2 className="display-title mt-4 text-3xl">{album.name}</h2>
-				{album.description ? (
-					<p className="mt-2 max-w-2xl text-(--sea-ink-soft)">
-						{album.description}
-					</p>
-				) : null}
-			</header>
+			<Breadcrumb className="mb-4">
+				<BreadcrumbList>
+					<BreadcrumbItem>
+						<BreadcrumbLink asChild>
+							<Link to="/albums">Albums</Link>
+						</BreadcrumbLink>
+					</BreadcrumbItem>
+					<BreadcrumbSeparator />
+					<BreadcrumbItem>
+						<BreadcrumbPage>{album.name}</BreadcrumbPage>
+					</BreadcrumbItem>
+				</BreadcrumbList>
+			</Breadcrumb>
+			<PageHeader
+				description={album.description || undefined}
+				title={album.name}
+			/>
 			{media.length === 0 ? (
-				<section className="flex min-h-[45svh] items-center justify-center">
-					<div className="max-w-md text-center">
-						<span className="mx-auto flex size-14 items-center justify-center rounded-2xl bg-(--chip-bg) text-(--lagoon-deep)">
-							<Images className="size-7" />
-						</span>
-						<h3 className="display-title mt-5 text-3xl">
-							This album appears to be empty
-						</h3>
-						<p className="mt-2 text-(--sea-ink-soft)">
-							Add photos from your library using their right-click menu.
-						</p>
-					</div>
-				</section>
+				<EmptyState
+					className="min-h-[45svh] border"
+					description="Add photos from your library using the action menu on any photo."
+					icon={Images}
+					title="This album is empty"
+				/>
 			) : (
 				<>
 					<div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7">
@@ -171,7 +175,7 @@ function AlbumPhotosPage() {
 					</div>
 					<div className="h-12" ref={sentinelRef} />
 					{visibleMedia.length < media.length ? (
-						<p className="pb-8 text-center text-sm text-(--sea-ink-soft)">
+						<p className="pb-8 text-center text-sm text-muted-foreground">
 							Scroll to load more
 						</p>
 					) : null}

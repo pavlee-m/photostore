@@ -2,8 +2,19 @@ import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { useState } from "react";
 import { signOut } from "#/api/auth.ts";
 import { DeleteAccountDialog } from "#/components/delete-account-dialog.tsx";
+import { PageHeader } from "#/components/page-header.tsx";
 import { ProfileForm } from "#/components/profile-form.tsx";
+import { Badge } from "#/components/ui/badge.tsx";
 import { Button } from "#/components/ui/button.tsx";
+import {
+	Card,
+	CardContent,
+	CardDescription,
+	CardFooter,
+	CardHeader,
+	CardTitle,
+} from "#/components/ui/card.tsx";
+import { Separator } from "#/components/ui/separator.tsx";
 import { StorageMeter } from "#/components/user-avatar.tsx";
 import { toastApiError } from "#/lib/api-error.ts";
 import { formatRole, isFounder } from "#/lib/roles.ts";
@@ -36,45 +47,51 @@ function ProfilePage() {
 	}
 
 	return (
-		<main className="page-wrap py-10">
-			<section className="island-shell max-w-xl rounded-2xl p-8">
-				<p className="island-kicker">Account</p>
-				<h2 className="display-title mt-2 text-3xl">Your profile</h2>
-				<p className="mt-1 text-sm text-[var(--sea-ink-soft)]">
-					{formatRole(user.role.name)}
-				</p>
-				<div className="mt-6">
+		<main className="page-wrap py-8 sm:py-10">
+			<PageHeader
+				description="Manage your account details, storage, and session."
+				eyebrow="Account"
+				title="Your profile"
+			/>
+			<Card className="max-w-xl">
+				<CardHeader>
+					<div className="flex items-center justify-between gap-3">
+						<CardTitle>Profile details</CardTitle>
+						<Badge variant="secondary">{formatRole(user.role.name)}</Badge>
+					</div>
+					<CardDescription>
+						Update the information associated with your account.
+					</CardDescription>
+				</CardHeader>
+				<CardContent className="grid gap-6">
 					<ProfileForm user={user} />
-				</div>
-				<div className="mt-6">
 					<StorageMeter
 						total={user.storage_space}
 						used={user.storage_used ?? 0}
 					/>
-				</div>
-				<Button
-					className="mt-6"
-					onClick={() => void handleSignOut()}
-					variant="outline"
-				>
-					Sign out
-				</Button>
-				{isFounder(user.role.name) ? null : (
-					<div className="mt-8 border-t border-[var(--line)] pt-6">
-						<h3 className="font-semibold text-destructive">Danger zone</h3>
-						<p className="mt-1 text-sm text-[var(--sea-ink-soft)]">
+				</CardContent>
+				<CardFooter>
+					<Button onClick={() => void handleSignOut()} variant="outline">
+						Sign out
+					</Button>
+				</CardFooter>
+			</Card>
+			{isFounder(user.role.name) ? null : (
+				<Card className="mt-6 max-w-xl border-destructive/30">
+					<CardHeader>
+						<CardTitle className="text-destructive">Danger zone</CardTitle>
+						<CardDescription>
 							Permanently delete your account and all of its data.
-						</p>
-						<Button
-							className="mt-4"
-							onClick={() => setDeleteOpen(true)}
-							variant="destructive"
-						>
+						</CardDescription>
+					</CardHeader>
+					<Separator />
+					<CardFooter>
+						<Button onClick={() => setDeleteOpen(true)} variant="destructive">
 							Delete account
 						</Button>
-					</div>
-				)}
-			</section>
+					</CardFooter>
+				</Card>
+			)}
 			{isFounder(user.role.name) ? null : (
 				<DeleteAccountDialog
 					onDeleted={async () => {

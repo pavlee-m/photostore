@@ -1,4 +1,5 @@
 import { FolderPlus, Trash2, X } from "lucide-react";
+import { Badge } from "#/components/ui/badge.tsx";
 import { Button } from "#/components/ui/button.tsx";
 import {
 	Dialog,
@@ -93,23 +94,27 @@ export function MediaViewer({
 						/>
 					)}
 				</div>
-				<section className="flex shrink-0 flex-col gap-4 border-t border-[var(--line)] p-4 sm:flex-row sm:items-center sm:justify-between">
+				<section className="flex shrink-0 flex-col gap-4 border-t bg-background p-4 text-foreground sm:flex-row sm:items-center sm:justify-between">
 					<div className="min-w-0">
-						<h2 className="truncate font-semibold text-[var(--sea-ink)]">
-							{media.name}
-						</h2>
-						<dl className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs text-[var(--sea-ink-soft)] sm:text-sm">
-							<div className="flex gap-1">
-								<dt>Type:</dt>
-								<dd>{media.fileType}</dd>
+						<h2 className="truncate font-semibold">{media.name}</h2>
+						<dl className="mt-2 flex flex-wrap gap-2 text-xs text-muted-foreground">
+							<div>
+								<dt className="sr-only">Type</dt>
+								<dd>
+									<Badge variant="secondary">{media.fileType}</Badge>
+								</dd>
 							</div>
-							<div className="flex gap-1">
-								<dt>Size:</dt>
-								<dd>{formatFileSize(media.size)}</dd>
+							<div>
+								<dt className="sr-only">Size</dt>
+								<dd>
+									<Badge variant="outline">{formatFileSize(media.size)}</Badge>
+								</dd>
 							</div>
-							<div className="flex gap-1">
-								<dt>Uploaded:</dt>
-								<dd>{uploadedAt}</dd>
+							<div>
+								<dt className="sr-only">Uploaded</dt>
+								<dd>
+									<Badge variant="outline">{uploadedAt}</Badge>
+								</dd>
 							</div>
 						</dl>
 					</div>

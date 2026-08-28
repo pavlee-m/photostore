@@ -14,7 +14,7 @@ function Progress({
 			aria-valuemin={0}
 			aria-valuenow={percent}
 			className={cn(
-				"relative h-1.5 w-full overflow-hidden rounded-full bg-[color-mix(in_oklab,var(--line)_70%,white)]",
+				"relative h-1.5 w-full overflow-hidden rounded-full bg-secondary",
 				className,
 			)}
 			data-slot="progress"
@@ -22,7 +22,7 @@ function Progress({
 			{...props}
 		>
 			<div
-				className="h-full rounded-full bg-[var(--lagoon)] transition-[width]"
+				className="h-full rounded-full bg-primary transition-[width]"
 				style={{ width: `${percent}%` }}
 			/>
 		</div>

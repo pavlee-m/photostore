@@ -1,4 +1,6 @@
-import { useState } from "react";
+import { useForm } from "@tanstack/react-form";
+import { TriangleAlert } from "lucide-react";
+import { useEffect } from "react";
 import { deleteAccount } from "#/api/user.ts";
 import { Button } from "#/components/ui/button.tsx";
 import {
@@ -9,9 +11,16 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "#/components/ui/dialog.tsx";
+import {
+	Field,
+	FieldDescription,
+	FieldError,
+	FieldGroup,
+	FieldLabel,
+} from "#/components/ui/field.tsx";
 import { Input } from "#/components/ui/input.tsx";
-import { Label } from "#/components/ui/label.tsx";
 import { toastApiError } from "#/lib/api-error.ts";
+import { deleteAccountSchema } from "#/schemas/user.ts";
 
 type DeleteAccountDialogProps = {
 	open: boolean;
@@ -24,36 +33,46 @@ export function DeleteAccountDialog({
 	onOpenChange,
 	onDeleted,
 }: DeleteAccountDialogProps) {
-	const [password, setPassword] = useState("");
-	const [busy, setBusy] = useState(false);
+	const form = useForm({
+		defaultValues: {
+			password: "",
+		},
+		validators: {
+			onSubmit: deleteAccountSchema,
+		},
+		onSubmit: async ({ value }) => {
+			try {
+				await deleteAccount(value.password);
+				onOpenChange(false);
+				await onDeleted();
+			} catch (error) {
+				toastApiError(error, "Could not delete your account.");
+			}
+		},
+	});
 
-	async function handleDelete() {
-		setBusy(true);
-		try {
-			await deleteAccount(password);
-			setPassword("");
-			onOpenChange(false);
-			await onDeleted();
-		} catch (error) {
-			toastApiError(error, "Could not delete your account.");
-		} finally {
-			setBusy(false);
+	useEffect(() => {
+		if (open) {
+			form.reset({ password: "" });
 		}
-	}
+	}, [form, open]);
 
 	return (
 		<Dialog
 			onOpenChange={(nextOpen) => {
-				if (!nextOpen && !busy) {
-					setPassword("");
+				if (!nextOpen && !form.state.isSubmitting) {
+					form.reset({ password: "" });
 				}
 				onOpenChange(nextOpen);
 			}}
 			open={open}
 		>
-			<DialogContent>
+			<DialogContent className="border-destructive/30">
 				<DialogHeader>
-					<DialogTitle>Delete account</DialogTitle>
+					<div className="mb-1 flex size-10 items-center justify-center rounded-full bg-destructive/10 text-destructive">
+						<TriangleAlert aria-hidden="true" className="size-5" />
+					</div>
+					<DialogTitle className="text-destructive">Delete account</DialogTitle>
 					<DialogDescription>
 						This permanently deletes your account and its data. Enter your
 						password to confirm.
@@ -63,36 +82,67 @@ export function DeleteAccountDialog({
 					className="grid gap-4"
 					onSubmit={(event) => {
 						event.preventDefault();
-						void handleDelete();
+						event.stopPropagation();
+						void form.handleSubmit();
 					}}
 				>
-					<div className="grid gap-2">
-						<Label htmlFor="delete-account-password">Password</Label>
-						<Input
-							autoComplete="current-password"
-							id="delete-account-password"
-							onChange={(event) => setPassword(event.target.value)}
-							required
-							type="password"
-							value={password}
-						/>
-					</div>
+					<FieldGroup>
+						<form.Field name="password">
+							{(field) => {
+								const isInvalid =
+									(field.state.meta.isTouched ||
+										form.state.submissionAttempts > 0) &&
+									!field.state.meta.isValid;
+								return (
+									<Field data-invalid={isInvalid}>
+										<FieldLabel htmlFor={field.name}>Password</FieldLabel>
+										<Input
+											aria-invalid={isInvalid}
+											autoComplete="current-password"
+											id={field.name}
+											name={field.name}
+											onBlur={field.handleBlur}
+											onChange={(event) =>
+												field.handleChange(event.target.value)
+											}
+											type="password"
+											value={field.state.value}
+										/>
+										<FieldDescription>
+											Enter your current password to confirm deletion.
+										</FieldDescription>
+										{isInvalid && (
+											<FieldError errors={field.state.meta.errors} />
+										)}
+									</Field>
+								);
+							}}
+						</form.Field>
+					</FieldGroup>
 					<DialogFooter>
-						<Button
-							disabled={busy}
-							onClick={() => onOpenChange(false)}
-							type="button"
-							variant="outline"
+						<form.Subscribe
+							selector={(state) => [state.canSubmit, state.isSubmitting]}
 						>
-							Cancel
-						</Button>
-						<Button
-							disabled={busy || password.length === 0}
-							type="submit"
-							variant="destructive"
-						>
-							{busy ? "Deleting..." : "Delete account"}
-						</Button>
+							{([canSubmit, isSubmitting]) => (
+								<>
+									<Button
+										disabled={isSubmitting}
+										onClick={() => onOpenChange(false)}
+										type="button"
+										variant="outline"
+									>
+										Cancel
+									</Button>
+									<Button
+										disabled={!canSubmit || isSubmitting}
+										type="submit"
+										variant="destructive"
+									>
+										{isSubmitting ? "Deleting..." : "Delete account"}
+									</Button>
+								</>
+							)}
+						</form.Subscribe>
 					</DialogFooter>
 				</form>
 			</DialogContent>
