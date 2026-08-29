@@ -4,6 +4,8 @@ import java.time.Instant;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
@@ -22,8 +24,13 @@ import lombok.ToString;
 public class UploadSession {
 
     @Id
-    @Column(name = "upload_id", nullable = false)
-    private String uploadId;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long uploadId;
+
+    // So as to not trust file names uploaded from the client.
+    // True filename is stored, but physically is stored with this name.
+    @Column(nullable = false)
+    private String uploadedFileName;
 
     @ToString.Exclude
     @EqualsAndHashCode.Exclude

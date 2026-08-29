@@ -7,8 +7,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 import com.example.photostore.entity.UploadSession;
 
-public interface UploadSessionRepository extends JpaRepository<UploadSession, String> {
+public interface UploadSessionRepository extends JpaRepository<UploadSession, Long> {
     List<UploadSession> findByCreatedAtBefore(Instant cutoff);
     List<UploadSession> findByUser_Id(Long userId);
-    UploadSession findByUploadIdAndUser_Id(String uploadId, Long userId);
+    UploadSession findByUploadIdAndUser_Id(Long uploadId, Long userId);
 }

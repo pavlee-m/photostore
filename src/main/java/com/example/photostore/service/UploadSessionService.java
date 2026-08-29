@@ -30,16 +30,16 @@ public class UploadSessionService {
 
     @Transactional
     public UploadSession create(
-            String uploadId,
             User user,
+            String uploadedFileName,
             String fileName,
             String fileType,
             String hash,
             Long totalSize,
             Integer totalChunks) {
         UploadSession session = new UploadSession();
-        session.setUploadId(uploadId);
         session.setUser(user);
+        session.setUploadedFileName(uploadedFileName);
         session.setFileName(fileName);
         session.setFileType(fileType);
         session.setHash(hash);
@@ -49,21 +49,21 @@ public class UploadSessionService {
         return uploadSessionRepository.save(session);
     }
 
-    public UploadSession getRequired(String uploadId) {
+    public UploadSession getRequired(Long uploadId) {
         return uploadSessionRepository.findById(uploadId)
                 .orElseThrow(() -> new IllegalArgumentException("Upload not found"));
     }
 
-    public UploadSession getByUserIdAndUploadId(Long userId, String uploadId) {
+    public UploadSession getByUserIdAndUploadId(Long userId, Long uploadId) {
         return uploadSessionRepository.findByUploadIdAndUser_Id(uploadId, userId);
     }
 
-    public Optional<UploadSession> find(String uploadId) {
+    public Optional<UploadSession> find(Long uploadId) {
         return uploadSessionRepository.findById(uploadId);
     }
 
     @Transactional
-    public boolean markChunkReceived(String uploadId, int chunkIndex) {
+    public boolean markChunkReceived(Long uploadId, int chunkIndex) {
         UploadSession session = getRequired(uploadId);
         if (chunkIndex < 0 || chunkIndex >= session.getTotalChunks()) {
             throw new IllegalArgumentException("Invalid chunk index");
@@ -84,7 +84,7 @@ public class UploadSessionService {
     }
 
     @Transactional
-    public void delete(String uploadId) {
+    public void delete(Long uploadId) {
         uploadChunkRepository.deleteByIdUploadId(uploadId);
         uploadSessionRepository.deleteById(uploadId);
     }

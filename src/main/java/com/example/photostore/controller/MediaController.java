@@ -71,7 +71,7 @@ public class MediaController {
     public ResponseEntity<String> uploadChunk
     (
         Authentication authentication,
-        @RequestParam String uploadId,
+        @RequestParam Long uploadId,
         @RequestParam int chunkIndex,
         @RequestParam("chunk") MultipartFile chunk
     )
@@ -86,12 +86,12 @@ public class MediaController {
         if (isComplete) {
             User user = userService.findById(userId);
             FinalizedUpload finalized = storageService.finalizeUpload(uploadId, user);
-            mediaService.saveFromUpload(
+            MediaFile saved = mediaService.saveFromUpload(
                     finalized.session(),
                     finalized.storedPath(),
                     finalized.extension(),
                     finalized.thumbnailPath());
-            return ResponseEntity.ok(uploadId);
+            return ResponseEntity.ok(saved.getId().toString());
         }
         return ResponseEntity.ok("Chunk uploaded successfully");
     }
@@ -100,7 +100,7 @@ public class MediaController {
     public ResponseEntity<UploadStatus> getUploadStatus
     (
         Authentication authentication,
-        @RequestParam String uploadId
+        @RequestParam Long uploadId
     )
     {
         final Long userId = Long.parseLong(authentication.getName());

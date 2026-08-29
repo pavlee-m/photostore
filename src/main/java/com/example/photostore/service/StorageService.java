@@ -189,7 +189,7 @@ public class StorageService {
     public String initializeUpload(String filename, long totalSize, int totalChunks, String fileHash, User user) {
         String fileExtension = extractFormatFromFilename(filename);
         String fileId = UUID.randomUUID().toString();
-        String uploadId = fileId + "." + fileExtension;
+        String uploadedFileName = fileId + "." + fileExtension;
         if (totalSize > maxFileSize.toBytes()) {
             throw new InvalidFileException("File size is too large");
         }
@@ -201,18 +201,17 @@ public class StorageService {
         if (fileExtension.isEmpty() || fileType == null) {
             throw new InvalidFileException("File type is not allowed");
         }
-        uploadSessionService.create(uploadId, user, filename, fileType, fileHash, totalSize, totalChunks);
-        return uploadId;
+        UploadSession session = uploadSessionService.create(user, uploadedFileName, filename, fileType, fileHash, totalSize, totalChunks);
+        return session.getUploadId().toString();
     }
 
-    public Boolean processChunk(String uploadId, int chunkIndex, MultipartFile chunk) {
+    public Boolean processChunk(Long uploadId, int chunkIndex, MultipartFile chunk) {
         UploadSession session = uploadSessionService.getRequired(uploadId);
         if (chunkIndex < 0 || chunkIndex >= session.getTotalChunks()) {
             throw new IllegalArgumentException("Invalid chunk index");
         }
         Path chunkPath = chunkPath(uploadId, chunkIndex);
         try {
-            Files.createDirectories(Paths.get(chunksDirectory));
             try (InputStream in = chunk.getInputStream()) {
                 Files.copy(in, chunkPath, StandardCopyOption.REPLACE_EXISTING);
             }
@@ -222,15 +221,12 @@ public class StorageService {
         return uploadSessionService.markChunkReceived(uploadId, chunkIndex);
     }
 
-    public FinalizedUpload finalizeUpload(String uploadId, User user) {
+    public FinalizedUpload finalizeUpload(Long uploadId, User user) {
         UploadSession session = uploadSessionService.getRequired(uploadId);
         int totalChunks = session.getTotalChunks();
-
-        Path assembledPath = Paths.get(chunksDirectory).resolve(uploadId + ".assembled");
-        Path encryptedPath = Paths.get(storageDirectory).resolve(uploadId);
+        Path assembledPath = Paths.get(chunksDirectory).resolve(session.getUploadedFileName() + ".assembled");
+        Path encryptedPath = Paths.get(storageDirectory).resolve(session.getUploadedFileName());
         try {
-            Files.createDirectories(Paths.get(storageDirectory));
-            Files.createDirectories(Paths.get(chunksDirectory));
             try (OutputStream out = Files.newOutputStream(assembledPath)) {
                 for (int i = 0; i < totalChunks; i++) {
                     Path chunkPath = chunkPath(uploadId, i);
@@ -244,7 +240,7 @@ public class StorageService {
                     assembledPath,
                     encryptedPath,
                     encryption.decryptWithMasterKey(user.getEncryption_key()));
-            String thumbnailPath = createThumbnailIfImage(session, assembledPath, uploadId, user);
+            String thumbnailPath = createThumbnailIfImage(session, assembledPath, session.getUploadedFileName(), user);
             uploadSessionService.delete(uploadId);
             return new FinalizedUpload(
                     session,
@@ -258,12 +254,12 @@ public class StorageService {
         }
     }
 
-    public void deleteSessionFiles(String uploadId, int totalChunks) {
-        Path assembledPath = Paths.get(chunksDirectory).resolve(uploadId + ".assembled");
+    public void deleteSessionFiles(Long uploadId, String uploadedFileName, int totalChunks) {
+        Path assembledPath = Paths.get(chunksDirectory).resolve(uploadedFileName + ".assembled");
         deleteUploadTempFiles(uploadId, assembledPath, totalChunks);
     }
 
-    private void deleteUploadTempFiles(String uploadId, Path assembledPath, int totalChunks) {
+    private void deleteUploadTempFiles(Long uploadId, Path assembledPath, int totalChunks) {
         try {
             Files.deleteIfExists(assembledPath);
             for (int i = 0; i < totalChunks; i++) {
@@ -274,13 +270,13 @@ public class StorageService {
         }
     }
 
-    public UploadStatus getUploadStatus(String uploadId) {
+    public UploadStatus getUploadStatus(Long uploadId) {
         return uploadSessionService.find(uploadId)
                 .map(uploadSessionService::toStatus)
                 .orElse(null);
     }
 
-    private Path chunkPath(String uploadId, int chunkIndex) {
+    private Path chunkPath(Long uploadId, int chunkIndex) {
         return Paths.get(chunksDirectory).resolve(uploadId + "_" + chunkIndex);
     }
 
@@ -306,17 +302,17 @@ public class StorageService {
         return new StoredThumbnail(destination.toString(), jpeg);
     }
 
-    private String createThumbnailIfImage(UploadSession session, Path assembledPath, String uploadId, User user) {
+    private String createThumbnailIfImage(UploadSession session, Path assembledPath, String uploadedFileName, User user) {
         if (session.getFileType() == null || !session.getFileType().startsWith("image/")) {
             return null;
         }
         try {
             byte[] jpeg = ImageThumbnail.toJpeg(assembledPath);
-            Path destination = thumbnailPath(uploadId);
+            Path destination = thumbnailPath(uploadedFileName);
             storeEncryptedJpeg(jpeg, destination, user);
             return destination.toString();
         } catch (Exception e) {
-            log.warn("Failed to create thumbnail for upload {}", uploadId, e);
+            log.warn("Failed to create thumbnail for upload {}", uploadedFileName, e);
             return null;
         }
     }

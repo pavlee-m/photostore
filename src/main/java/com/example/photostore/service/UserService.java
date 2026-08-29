@@ -105,7 +105,7 @@ public class UserService {
     public void deleteUser(Long userId) {
         userRepository.findById(userId).orElseThrow(() -> new UserNotFoundException("User not found with id: " + userId));
         for (var session : uploadSessionService.findByUserId(userId)) {
-            storageService.deleteSessionFiles(session.getUploadId(), session.getTotalChunks());
+            storageService.deleteSessionFiles(session.getUploadId(), session.getUploadedFileName(), session.getTotalChunks());
         }
         uploadSessionService.deleteAllForUser(userId);
         albumService.deleteAllForUser(userId);

@@ -9,6 +9,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -20,16 +21,20 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.MockMvc;
 
 import com.example.photostore.entity.MediaFile;
+import com.example.photostore.entity.UploadSession;
 import com.example.photostore.entity.User;
 import com.example.photostore.exception.MediaFileNotFoundException;
 import com.example.photostore.service.CustomUserDetailsService;
 import com.example.photostore.service.MediaService;
 import com.example.photostore.service.RefreshTokenService;
 import com.example.photostore.service.StorageService;
+import com.example.photostore.service.UploadSessionService;
 import com.example.photostore.service.UserService;
+import com.example.photostore.upload.FinalizedUpload;
 
 @WebMvcTest(MediaController.class)
 @AutoConfigureMockMvc(addFilters = false)
@@ -43,6 +48,9 @@ class MediaControllerTest {
 
     @MockitoBean
     private StorageService storageService;
+
+    @MockitoBean
+    private UploadSessionService uploadSessionService;
 
     @MockitoBean
     private UserService userService;
@@ -83,7 +91,7 @@ class MediaControllerTest {
         when(userService.findById(7L)).thenReturn(user);
         when(mediaService.findByHashAndUser_Id("abc123", 7L)).thenReturn(null);
         when(storageService.initializeUpload("photo.jpg", 1024L, 1, "abc123", user))
-                .thenReturn("uuid.jpg");
+                .thenReturn("123");
 
         mockMvc.perform(post("/api/v1/media/upload-init")
                         .principal(authentication())
@@ -93,8 +101,43 @@ class MediaControllerTest {
                         .param("fileHash", "abc123"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.alreadyUploaded").value(false))
-                .andExpect(jsonPath("$.uploadId").value("uuid.jpg"))
+                .andExpect(jsonPath("$.uploadId").value("123"))
                 .andExpect(jsonPath("$.mediaId").doesNotExist());
+    }
+
+    @Test
+    void uploadChunk_whenUploadCompletes_returnsSavedMediaId() throws Exception {
+        User user = new User();
+        user.setId(7L);
+        UploadSession session = new UploadSession();
+        session.setUploadId(123L);
+        session.setUser(user);
+        FinalizedUpload finalized = new FinalizedUpload(
+                session,
+                "/storage/file.jpg",
+                "jpg",
+                "/thumbnails/file.jpg");
+        MediaFile saved = new MediaFile();
+        saved.setId(42L);
+
+        when(uploadSessionService.getByUserIdAndUploadId(7L, 123L)).thenReturn(session);
+        when(storageService.processChunk(anyLong(), anyInt(), any())).thenReturn(true);
+        when(storageService.finalizeUpload(123L, user)).thenReturn(finalized);
+        when(userService.findById(7L)).thenReturn(user);
+        when(mediaService.saveFromUpload(
+                session,
+                finalized.storedPath(),
+                finalized.extension(),
+                finalized.thumbnailPath()))
+                .thenReturn(saved);
+
+        mockMvc.perform(multipart("/api/v1/media/upload-chunk")
+                        .file(new MockMultipartFile("chunk", "chunk", "application/octet-stream", new byte[] {1}))
+                        .principal(authentication())
+                        .param("uploadId", "123")
+                        .param("chunkIndex", "0"))
+                .andExpect(status().isOk())
+                .andExpect(content().string("42"));
     }
 
     @Test

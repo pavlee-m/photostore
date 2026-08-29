@@ -15,7 +15,7 @@ import lombok.NoArgsConstructor;
 public class UploadChunkId implements Serializable {
 
     @Column(name = "upload_id", nullable = false)
-    private String uploadId;
+    private Long uploadId;
 
     @Column(name = "chunk_index", nullable = false)
     private Integer chunkIndex;

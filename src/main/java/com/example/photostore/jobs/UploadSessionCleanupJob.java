@@ -28,7 +28,7 @@ public class UploadSessionCleanupJob {
     public void cleanupExpiredUploadSessions() {
         Instant cutoff = Instant.now().minus(uploadSessionTtl);
         for (UploadSession session : uploadSessionService.findCreatedBefore(cutoff)) {
-            storageService.deleteSessionFiles(session.getUploadId(), session.getTotalChunks());
+            storageService.deleteSessionFiles(session.getUploadId(), session.getUploadedFileName(), session.getTotalChunks());
             uploadSessionService.delete(session.getUploadId());
         }
     }
