@@ -25,7 +25,16 @@ function resolveApiUrl(path: string) {
 		return `${configuredBase.replace(/\/$/, "")}${path}`;
 	}
 	if (import.meta.env.SSR) {
-		return `http://localhost:8080${path}`;
+		const fromVite =
+			typeof import.meta.env.VITE_DEV_API_PROXY === "string"
+				? import.meta.env.VITE_DEV_API_PROXY
+				: "";
+		const fromProcess =
+			typeof process !== "undefined" && process.env.VITE_DEV_API_PROXY
+				? process.env.VITE_DEV_API_PROXY
+				: "";
+		const ssrBase = fromVite || fromProcess || "http://localhost:8080";
+		return `${ssrBase.replace(/\/$/, "")}${path}`;
 	}
 	return path;
 }

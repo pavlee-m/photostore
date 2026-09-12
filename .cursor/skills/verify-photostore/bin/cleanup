@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Tear down the instance this run started. Never kill by process name.
+# Proof under evidence/ is left untouched.
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck disable=SC1091
+source "$SCRIPT_DIR/common.sh"
+
+REMOVE_VOLUMES=0
+if [[ "${1:-}" == "--volumes" ]]; then
+	REMOVE_VOLUMES=1
+fi
+
+if [[ ! -f "$STATE_FILE" ]]; then
+	echo "cleanup: no verify instance state; nothing to stop"
+	exit 0
+fi
+
+# shellcheck disable=SC1090
+source "$STATE_FILE"
+
+if [[ -n "${FRONTEND_PID:-}" ]] && kill -0 "$FRONTEND_PID" 2>/dev/null; then
+	echo "cleanup: stopping frontend pid $FRONTEND_PID"
+	kill "$FRONTEND_PID" 2>/dev/null || true
+	deadline=$((SECONDS + 10))
+	while kill -0 "$FRONTEND_PID" 2>/dev/null && ((SECONDS < deadline)); do
+		sleep 0.2
+	done
+	if kill -0 "$FRONTEND_PID" 2>/dev/null; then
+		kill -9 "$FRONTEND_PID" 2>/dev/null || true
+	fi
+fi
+
+if command -v docker >/dev/null && docker compose version >/dev/null; then
+	if ((REMOVE_VOLUMES == 1)); then
+		echo "cleanup: docker compose -p $COMPOSE_PROJECT down --volumes"
+		compose down --volumes --remove-orphans || true
+	else
+		echo "cleanup: docker compose -p $COMPOSE_PROJECT down (volumes kept)"
+		compose down --remove-orphans || true
+	fi
+fi
+
+rm -f "$STATE_FILE" "$RUN_DIR/frontend.pid"
+echo "cleanup: instance removed; evidence kept at $EVIDENCE_DIR"
