@@ -27,7 +27,7 @@ Photostore is a self-hosted photo and video library for storing, browsing, and o
 - Microsoft SQL Server 2022
 - JJWT for token handling
 - MapStruct and Lombok
-- Springdoc OpenAPI with Swagger UI
+- Springdoc OpenAPI with Swagger UI, off by default. Set both `SPRINGDOC_API_DOCS_ENABLED` and `SPRINGDOC_SWAGGER_UI_ENABLED` to `true` to enable `/swagger-ui.html` and `/v3/api-docs`.
 - Maven
 
 ### Frontend
@@ -95,6 +95,8 @@ Run the command separately for `JWT_SECRET` and `PHOTO_STORE_MASTER_KEY`. The SQ
 | `PHOTO_STORE_MASTER_KEY` | Key used to protect users' media-encryption keys |
 | `MSSQL_PORT` | Optional host database port; defaults to `1433` |
 | `PHOTOSTORE_SITE` | Optional Caddy site address; defaults to `http://localhost`. Set a real hostname to enable automatic HTTPS. |
+| `SPRINGDOC_API_DOCS_ENABLED` | Optional. Set to `true` with the Swagger UI flag to publish OpenAPI JSON. Defaults to `false`. |
+| `SPRINGDOC_SWAGGER_UI_ENABLED` | Optional. Set to `true` with the API docs flag to publish Swagger UI. Defaults to `false`. |
 
 Keep the master key safe. Changing or losing it can make existing encrypted media unreadable.
 
@@ -174,12 +176,14 @@ bun --bun run check
 
 ## API documentation
 
-With the production stack running, interactive API documentation is on the same origin:
+Swagger UI and the OpenAPI spec are off by default. Set both `SPRINGDOC_API_DOCS_ENABLED` and `SPRINGDOC_SWAGGER_UI_ENABLED` to `true` in `.env` to turn them on.
+
+With the production stack, those paths are on the same origin:
 
 - Swagger UI: [http://localhost/swagger-ui.html](http://localhost/swagger-ui.html)
 - OpenAPI JSON: [http://localhost/v3/api-docs](http://localhost/v3/api-docs)
 
-With `compose.dev.yaml`, those paths stay on the published API:
+With `compose.dev.yaml`, they stay on the published API:
 
 - Swagger UI: [http://localhost:8080/swagger-ui.html](http://localhost:8080/swagger-ui.html)
 - OpenAPI JSON: [http://localhost:8080/v3/api-docs](http://localhost:8080/v3/api-docs)

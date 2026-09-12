@@ -138,25 +138,6 @@ class RouteSecurityIntegrationTest {
     }
 
     @Test
-    @Order(12)
-    void openApiDocs_arePublic() throws Exception {
-        mockMvc.perform(get("/v3/api-docs"))
-                .andExpect(status().isOk())
-                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$.openapi").exists());
-    }
-
-    @Test
-    @Order(13)
-    void swaggerUi_isPublic() throws Exception {
-        mockMvc.perform(get("/swagger-ui.html"))
-                .andExpect(status().is3xxRedirection());
-
-        mockMvc.perform(get("/swagger-ui/index.html"))
-                .andExpect(status().isOk());
-    }
-
-    @Test
     @Order(14)
     void changePasswordForUser_requiresAdminRole() throws Exception {
         mockMvc.perform(post("/api/v1/admin/change-password/1")
