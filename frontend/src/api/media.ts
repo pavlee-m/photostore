@@ -1,5 +1,9 @@
 import { apiFetch, parseApiError } from "#/api/client.ts";
-import type { MediaFile, UploadInitResponse } from "#/types/media.ts";
+import type {
+	MediaFile,
+	UploadInitResponse,
+	UploadProgress,
+} from "#/types/media.ts";
 
 export async function listMedia(page: number, size: number) {
 	const params = new URLSearchParams({
@@ -63,7 +67,7 @@ export async function uploadChunk(
 	uploadId: string,
 	chunkIndex: number,
 	chunk: Blob,
-) {
+): Promise<{ complete: boolean; mediaId?: number }> {
 	const params = new URLSearchParams({
 		uploadId,
 		chunkIndex: String(chunkIndex),
@@ -77,4 +81,18 @@ export async function uploadChunk(
 	if (!response.ok) {
 		throw await parseApiError(response);
 	}
+	const text = (await response.text()).trim();
+	if (/^\d+$/.test(text)) {
+		return { complete: true, mediaId: Number(text) };
+	}
+	return { complete: false };
+}
+
+export async function getUploadStatus(uploadId: string) {
+	const params = new URLSearchParams({ uploadId });
+	const response = await apiFetch(`/api/v1/media/upload-status?${params}`);
+	if (!response.ok) {
+		throw await parseApiError(response);
+	}
+	return (await response.json()) as UploadProgress;
 }

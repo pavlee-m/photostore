@@ -28,7 +28,7 @@ import com.example.photostore.service.UploadSessionService;
 import com.example.photostore.service.UserService;
 import com.example.photostore.upload.FinalizedUpload;
 import com.example.photostore.upload.UploadInitResponse;
-import com.example.photostore.upload.UploadStatus;
+import com.example.photostore.upload.UploadProgress;
 
 @RestController
 @RequestMapping("/api/v1/media")
@@ -97,7 +97,7 @@ public class MediaController {
     }
 
     @GetMapping("/upload-status")
-    public ResponseEntity<UploadStatus> getUploadStatus
+    public ResponseEntity<UploadProgress> getUploadStatus
     (
         Authentication authentication,
         @RequestParam Long uploadId
@@ -108,7 +108,8 @@ public class MediaController {
         if (session == null) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
-        UploadStatus status = storageService.getUploadStatus(uploadId);
+        UploadProgress status = storageService.getUploadStatus(uploadId);
+        status.setUploadStatus(session.getUploadStatus().getStatus());
         return ResponseEntity.ok(status);
     }
 

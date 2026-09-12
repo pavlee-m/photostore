@@ -14,10 +14,11 @@ import org.springframework.transaction.annotation.Transactional;
 import com.example.photostore.entity.UploadChunk;
 import com.example.photostore.entity.UploadChunkId;
 import com.example.photostore.entity.UploadSession;
+import com.example.photostore.entity.UploadStatus;
 import com.example.photostore.entity.User;
 import com.example.photostore.repository.UploadChunkRepository;
 import com.example.photostore.repository.UploadSessionRepository;
-import com.example.photostore.upload.UploadStatus;
+import com.example.photostore.upload.UploadProgress;
 
 import lombok.RequiredArgsConstructor;
 
@@ -36,7 +37,8 @@ public class UploadSessionService {
             String fileType,
             String hash,
             Long totalSize,
-            Integer totalChunks) {
+            Integer totalChunks,
+            UploadStatus uploadStatus) {
         UploadSession session = new UploadSession();
         session.setUser(user);
         session.setUploadedFileName(uploadedFileName);
@@ -46,6 +48,7 @@ public class UploadSessionService {
         session.setTotalSize(totalSize);
         session.setTotalChunks(totalChunks);
         session.setCreatedAt(Instant.now());
+        session.setUploadStatus(uploadStatus);
         return uploadSessionRepository.save(session);
     }
 
@@ -93,6 +96,10 @@ public class UploadSessionService {
         return uploadSessionRepository.findByCreatedAtBefore(cutoff);
     }
 
+    public List<UploadSession> findByUploadStatus(String uploadStatus) {
+        return uploadSessionRepository.findByUploadStatus_Status(uploadStatus);
+    }
+
     public List<UploadSession> findByUserId(Long userId) {
         return uploadSessionRepository.findByUser_Id(userId);
     }
@@ -104,7 +111,7 @@ public class UploadSessionService {
         }
     }
 
-    public UploadStatus toStatus(UploadSession session) {
+    public UploadProgress toStatus(UploadSession session) {
         Set<Integer> received = new HashSet<>();
         for (UploadChunk chunk : uploadChunkRepository.findByIdUploadId(session.getUploadId())) {
             received.add(chunk.getId().getChunkIndex());
@@ -115,9 +122,15 @@ public class UploadSessionService {
                 missing.add(i);
             }
         }
-        return UploadStatus.builder()
+        return UploadProgress.builder()
                 .totalChunks(session.getTotalChunks())
                 .missing(missing)
                 .build();
+    }
+
+    public void updateUploadStatus(Long uploadId, UploadStatus uploadStatus) {
+        UploadSession session = getRequired(uploadId);
+        session.setUploadStatus(uploadStatus);
+        uploadSessionRepository.save(session);
     }
 }

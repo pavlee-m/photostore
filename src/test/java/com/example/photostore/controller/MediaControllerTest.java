@@ -26,6 +26,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import com.example.photostore.entity.MediaFile;
 import com.example.photostore.entity.UploadSession;
+import com.example.photostore.entity.UploadStatus;
 import com.example.photostore.entity.User;
 import com.example.photostore.exception.MediaFileNotFoundException;
 import com.example.photostore.service.CustomUserDetailsService;
@@ -35,6 +36,7 @@ import com.example.photostore.service.StorageService;
 import com.example.photostore.service.UploadSessionService;
 import com.example.photostore.service.UserService;
 import com.example.photostore.upload.FinalizedUpload;
+import com.example.photostore.upload.UploadProgress;
 
 @WebMvcTest(MediaController.class)
 @AutoConfigureMockMvc(addFilters = false)
@@ -141,6 +143,71 @@ class MediaControllerTest {
     }
 
     @Test
+    void uploadChunk_whenIncomplete_doesNotFinalize() throws Exception {
+        UploadSession session = ownedSession();
+        when(uploadSessionService.getByUserIdAndUploadId(7L, 123L)).thenReturn(session);
+        when(storageService.processChunk(anyLong(), anyInt(), any())).thenReturn(false);
+
+        mockMvc.perform(multipart("/api/v1/media/upload-chunk")
+                        .file(new MockMultipartFile("chunk", "chunk", "application/octet-stream", new byte[] {1}))
+                        .principal(authentication())
+                        .param("uploadId", "123")
+                        .param("chunkIndex", "0"))
+                .andExpect(status().isOk())
+                .andExpect(content().string("Chunk uploaded successfully"));
+
+        verify(storageService, never()).finalizeUpload(anyLong(), any());
+    }
+
+    @Test
+    void uploadChunk_whenNotOwned_returnsForbidden() throws Exception {
+        when(uploadSessionService.getByUserIdAndUploadId(7L, 123L)).thenReturn(null);
+
+        mockMvc.perform(multipart("/api/v1/media/upload-chunk")
+                        .file(new MockMultipartFile("chunk", "chunk", "application/octet-stream", new byte[] {1}))
+                        .principal(authentication())
+                        .param("uploadId", "123")
+                        .param("chunkIndex", "0"))
+                .andExpect(status().isForbidden())
+                .andExpect(content().string("Forbidden"));
+
+        verify(storageService, never()).processChunk(anyLong(), anyInt(), any());
+    }
+
+    @Test
+    void getUploadStatus_whenOwned_returnsProgressAndSessionStatus() throws Exception {
+        UploadSession session = ownedSession();
+        session.setUploadStatus(new UploadStatus(1L, "UPLOADING"));
+        UploadProgress progress = UploadProgress.builder()
+                .totalChunks(4)
+                .missing(java.util.List.of(2, 3))
+                .build();
+        when(uploadSessionService.getByUserIdAndUploadId(7L, 123L)).thenReturn(session);
+        when(storageService.getUploadStatus(123L)).thenReturn(progress);
+
+        mockMvc.perform(get("/api/v1/media/upload-status")
+                        .principal(authentication())
+                        .param("uploadId", "123"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalChunks").value(4))
+                .andExpect(jsonPath("$.missing[0]").value(2))
+                .andExpect(jsonPath("$.missing[1]").value(3))
+                .andExpect(jsonPath("$.uploadStatus").value("UPLOADING"));
+    }
+
+    @Test
+    void getUploadStatus_whenNotOwned_returnsForbidden() throws Exception {
+        when(uploadSessionService.getByUserIdAndUploadId(7L, 123L)).thenReturn(null);
+
+        mockMvc.perform(get("/api/v1/media/upload-status")
+                        .principal(authentication())
+                        .param("uploadId", "123"))
+                .andExpect(status().isForbidden());
+
+        verify(storageService, never()).getUploadStatus(anyLong());
+    }
+
+    @Test
     void deleteMedia_deletesOwnedFile() throws Exception {
         mockMvc.perform(delete("/api/v1/media/42")
                         .principal(authentication()))
@@ -219,5 +286,14 @@ class MediaControllerTest {
 
     private UsernamePasswordAuthenticationToken authentication() {
         return new UsernamePasswordAuthenticationToken("7", null, java.util.List.of());
+    }
+
+    private static UploadSession ownedSession() {
+        User user = new User();
+        user.setId(7L);
+        UploadSession session = new UploadSession();
+        session.setUploadId(123L);
+        session.setUser(user);
+        return session;
     }
 }

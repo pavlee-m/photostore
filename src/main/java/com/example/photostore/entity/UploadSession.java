@@ -53,6 +53,10 @@ public class UploadSession {
     @Column(nullable = false)
     private Integer totalChunks;
 
+    @ManyToOne
+    @JoinColumn(name = "upload_status_id", nullable = false)
+    private UploadStatus uploadStatus;
+
     @Column(nullable = false)
     private Instant createdAt;
 }

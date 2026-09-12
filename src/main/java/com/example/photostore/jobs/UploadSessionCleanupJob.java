@@ -3,7 +3,6 @@ package com.example.photostore.jobs;
 import java.time.Duration;
 import java.time.Instant;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -15,21 +14,32 @@ import com.example.photostore.service.UploadSessionService;
 @Component
 public class UploadSessionCleanupJob {
 
-    @Value("${photostore.upload-session-ttl}")
-    private Duration uploadSessionTtl;
+    private final Duration uploadSessionTtl;
+    private final UploadSessionService uploadSessionService;
+    private final StorageService storageService;
 
-    @Autowired
-    private UploadSessionService uploadSessionService;
-
-    @Autowired
-    private StorageService storageService;
+    public UploadSessionCleanupJob(
+            @Value("${photostore.upload-session-ttl}") Duration uploadSessionTtl,
+            UploadSessionService uploadSessionService,
+            StorageService storageService) {
+        this.uploadSessionTtl = uploadSessionTtl;
+        this.uploadSessionService = uploadSessionService;
+        this.storageService = storageService;
+    }
 
     @Scheduled(fixedDelay = 60 * 60 * 1000) // 1 hour
-    public void cleanupExpiredUploadSessions() {
+    public void cleanupUploadSessions() {
+        for (UploadSession session : uploadSessionService.findByUploadStatus("UPLOADED")) {
+            deleteSession(session);
+        }
         Instant cutoff = Instant.now().minus(uploadSessionTtl);
         for (UploadSession session : uploadSessionService.findCreatedBefore(cutoff)) {
-            storageService.deleteSessionFiles(session.getUploadId(), session.getUploadedFileName(), session.getTotalChunks());
-            uploadSessionService.delete(session.getUploadId());
+            deleteSession(session);
         }
+    }
+
+    private void deleteSession(UploadSession session) {
+        storageService.deleteSessionFiles(session.getUploadId(), session.getUploadedFileName(), session.getTotalChunks());
+        uploadSessionService.delete(session.getUploadId());
     }
 }

@@ -13,7 +13,8 @@ import lombok.Setter;
 @Getter
 @Setter
 @Builder
-public class UploadStatus {
+public class UploadProgress {
     private Integer totalChunks;
     private List<Integer> missing;
+    private String uploadStatus;
 }

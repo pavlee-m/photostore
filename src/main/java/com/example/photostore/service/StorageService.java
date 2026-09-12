@@ -12,6 +12,7 @@ import java.util.UUID;
 
 import javax.crypto.SecretKey;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
@@ -28,7 +29,8 @@ import com.example.photostore.image.ImageThumbnail;
 import com.example.photostore.image.StoredThumbnail;
 import com.example.photostore.security.Encryption;
 import com.example.photostore.upload.FinalizedUpload;
-import com.example.photostore.upload.UploadStatus;
+import com.example.photostore.upload.UploadProgress;
+import com.example.photostore.entity.UploadStatus;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -69,7 +71,13 @@ public class StorageService {
 
 
     private final Encryption encryption;
+
+    @Autowired
     private final UploadSessionService uploadSessionService;
+
+
+    @Autowired
+    private final UploadStatusService uploadStatusService;
 
     public String uploadProfilePicture(Long userId, MultipartFile file) {
         validateImageFile(file);
@@ -201,7 +209,8 @@ public class StorageService {
         if (fileExtension.isEmpty() || fileType == null) {
             throw new InvalidFileException("File type is not allowed");
         }
-        UploadSession session = uploadSessionService.create(user, uploadedFileName, filename, fileType, fileHash, totalSize, totalChunks);
+        UploadStatus uploadStatus = uploadStatusService.getUploadStatus("UPLOADING");
+        UploadSession session = uploadSessionService.create(user, uploadedFileName, filename, fileType, fileHash, totalSize, totalChunks, uploadStatus);
         return session.getUploadId().toString();
     }
 
@@ -240,8 +249,9 @@ public class StorageService {
                     assembledPath,
                     encryptedPath,
                     encryption.decryptWithMasterKey(user.getEncryption_key()));
-            String thumbnailPath = createThumbnailIfImage(session, assembledPath, session.getUploadedFileName(), user);
-            uploadSessionService.delete(uploadId);
+            String thumbnailPath = createThumbnailIfImage(session, assembledPath, session.getUploadedFileName(), user);            
+            UploadStatus uploadStatus = uploadStatusService.getUploadStatus("UPLOADED");
+            uploadSessionService.updateUploadStatus(uploadId, uploadStatus);
             return new FinalizedUpload(
                     session,
                     encryptedPath.toString(),
@@ -270,7 +280,7 @@ public class StorageService {
         }
     }
 
-    public UploadStatus getUploadStatus(Long uploadId) {
+    public UploadProgress getUploadStatus(Long uploadId) {
         return uploadSessionService.find(uploadId)
                 .map(uploadSessionService::toStatus)
                 .orElse(null);

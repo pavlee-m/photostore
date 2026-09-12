@@ -12,3 +12,9 @@ export type UploadInitResponse = {
 	uploadId?: string;
 	mediaId?: number;
 };
+
+export type UploadProgress = {
+	totalChunks: number;
+	missing: number[];
+	uploadStatus?: string;
+};

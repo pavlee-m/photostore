@@ -9,6 +9,7 @@ import { type ReactNode, useLayoutEffect } from "react";
 import { loadAuthSnapshot } from "#/api/session.ts";
 import { PageError, PagePending } from "#/components/page-status.tsx";
 import { Toaster } from "#/components/ui/sonner.tsx";
+import { UploadToastsHost } from "#/components/upload-toasts-host.tsx";
 import { applyTheme } from "#/lib/theme.ts";
 import { useAuthStore } from "#/stores/auth.ts";
 import { useThemeStore } from "#/stores/theme.ts";
@@ -70,7 +71,8 @@ function RootComponent() {
 	return (
 		<QueryClientProvider client={queryClient}>
 			<Outlet />
-			<Toaster />
+			<Toaster closeButton visibleToasts={8} />
+			<UploadToastsHost />
 		</QueryClientProvider>
 	);
 }
