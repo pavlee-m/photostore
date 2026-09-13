@@ -1,0 +1,75 @@
+services:
+  mssql:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: ${DB_PASSWORD}
+      MSSQL_PID: Developer
+    ports:
+      - "${MSSQL_PORT:-1433}:1433"
+    volumes:
+      - mssql-data:/var/opt/mssql
+      - ./docker/mssql/entrypoint.sh:/entrypoint.sh:ro
+      - ./docker/mssql/create-database.sql:/init/create-database.sql:ro
+    entrypoint: ["/bin/bash", "/entrypoint.sh"]
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          '/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$$MSSQL_SA_PASSWORD" -C -d photostore -Q "SELECT 1" || exit 1',
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+    mem_limit: 2g
+    restart: unless-stopped
+
+  photostore:
+    build:
+      context: .
+      target: development
+    ports:
+      - "${APP_PORT:-8080}:8080"
+    env_file:
+      - .env
+    environment:
+      SPRING_DATASOURCE_URL: "jdbc:sqlserver://mssql:1433;databaseName=photostore;encrypt=true;trustServerCertificate=true"
+      PHOTOSTORE_STORAGE_DIRECTORY: /app/storage
+      PHOTOSTORE_PROFILE_PICTURES_DIRECTORY: /app/profile_pictures
+      PHOTOSTORE_ALBUM_COVERS_DIRECTORY: /app/album_covers
+      PHOTOSTORE_CHUNKS_DIRECTORY: /app/chunks
+    volumes:
+      - ./src:/src/src
+      - ./pom.xml:/src/pom.xml
+      - photostore-storage:/app/storage
+      - photostore-profiles:/app/profile_pictures
+      - photostore-covers:/app/album_covers
+      - photostore-chunks:/app/chunks
+    depends_on:
+      mssql:
+        condition: service_healthy
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      target: development
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"
+    environment:
+      VITE_DEV_API_PROXY: http://photostore:8080
+    volumes:
+      - ./frontend:/app
+      - frontend-node-modules:/app/node_modules
+    depends_on:
+      - photostore
+    restart: unless-stopped
+
+volumes:
+  mssql-data:
+  photostore-storage:
+  photostore-profiles:
+  photostore-covers:
+  photostore-chunks:
+  frontend-node-modules:

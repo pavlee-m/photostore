@@ -1,0 +1,16 @@
+http://localhost {
+	encode gzip
+
+	@spring path /api* /swagger-ui* /v3/api-docs*
+	handle @spring {
+		reverse_proxy photostore:8080 {
+			header_up Host {host}
+		}
+	}
+
+	handle {
+		reverse_proxy frontend:3000 {
+			header_up Host {host}
+		}
+	}
+}

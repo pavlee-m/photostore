@@ -94,11 +94,11 @@ Run the command separately for `JWT_SECRET` and `PHOTO_STORE_MASTER_KEY`. The SQ
 | `JWT_SECRET` | Key used to sign authentication tokens |
 | `PHOTO_STORE_MASTER_KEY` | Key used to protect users' media-encryption keys |
 | `MSSQL_PORT` | Optional host database port; defaults to `1433` |
-| `APP_PORT` | Optional host API port; defaults to `8080` |
+| `PHOTOSTORE_SITE` | Optional Caddy site address; defaults to `http://localhost`. Set a real hostname to enable automatic HTTPS. |
 
 Keep the master key safe. Changing or losing it can make existing encrypted media unreadable.
 
-### 2. Start the database and backend
+### 2. Start production
 
 From the repository root:
 
@@ -106,7 +106,23 @@ From the repository root:
 docker compose up --build
 ```
 
-This starts SQL Server, creates the `photostore` database, and runs the API at [http://localhost:8080](http://localhost:8080).
+`compose.yaml` includes `compose.prod.yaml`. This starts SQL Server, the packaged API, the packaged frontend, and Caddy. Open [http://localhost](http://localhost). Caddy is the only published HTTP origin. The UI and `/api` share that origin.
+
+On the first visit, Photostore redirects to `/setup`, where the initial administrator account can be created.
+
+To serve a real hostname (and Caddy's automatic HTTPS for it):
+
+```bash
+PHOTOSTORE_SITE=photos.example.com docker compose up --build
+```
+
+`APP_PORT` is not published in production.
+
+For the development images, including the Vite frontend at [http://localhost:3000](http://localhost:3000):
+
+```bash
+docker compose -f compose.dev.yaml up --build
+```
 
 ### 3. Start the frontend
 
@@ -134,7 +150,7 @@ The backend reads `.env` by default. To use another environment file:
 ENV_FILE=.env.staging ./mvnw spring-boot:run
 ```
 
-Start the frontend separately as described above. For a backend at a different URL, set `VITE_API_BASE_URL` when starting or building the frontend.
+Start the frontend separately as described above. Vite proxies `/api` to `VITE_DEV_API_PROXY` when set, or to `http://localhost:8080`.
 
 ## Useful commands
 
@@ -158,7 +174,12 @@ bun --bun run check
 
 ## API documentation
 
-With the backend running, interactive API documentation is available at:
+With the production stack running, interactive API documentation is on the same origin:
+
+- Swagger UI: [http://localhost/swagger-ui.html](http://localhost/swagger-ui.html)
+- OpenAPI JSON: [http://localhost/v3/api-docs](http://localhost/v3/api-docs)
+
+With `compose.dev.yaml`, those paths stay on the published API:
 
 - Swagger UI: [http://localhost:8080/swagger-ui.html](http://localhost:8080/swagger-ui.html)
 - OpenAPI JSON: [http://localhost:8080/v3/api-docs](http://localhost:8080/v3/api-docs)
@@ -172,7 +193,10 @@ With the backend running, interactive API documentation is available at:
 ├── src/test/               Backend unit and integration tests
 ├── frontend/               TanStack Start application
 ├── docker/mssql/           SQL Server initialization script
-├── compose.yaml            Local service orchestration
+├── caddy/                  Production Caddyfile (public origin and path policy)
+├── compose.yaml            Includes the production Compose file
+├── compose.prod.yaml       SQL Server, packaged API, frontend, and Caddy
+├── compose.dev.yaml        SQL Server, spring-boot:run, and Vite
 ├── Dockerfile              Backend production image
 └── .env.example            Environment variable template
 ```

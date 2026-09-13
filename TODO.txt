@@ -1,5 +1,0 @@
-- Make sure that the first admin account created cannot at all be removed in the admin dashboards. x
-- Add support in frontend for continuing of uploads (also add upload session ownership to protect overriding of uploads by other users)
-- Figure out docker compose deployment
-- Mobile app?
-- Cascading? x

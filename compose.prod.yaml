@@ -1,0 +1,90 @@
+networks:
+  edge:
+  data:
+
+services:
+  mssql:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: ${DB_PASSWORD}
+      MSSQL_PID: Developer
+    ports:
+      - "${MSSQL_PORT:-1433}:1433"
+    volumes:
+      - mssql-data:/var/opt/mssql
+      - ./docker/mssql/entrypoint.sh:/entrypoint.sh:ro
+      - ./docker/mssql/create-database.sql:/init/create-database.sql:ro
+    entrypoint: ["/bin/bash", "/entrypoint.sh"]
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          '/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$$MSSQL_SA_PASSWORD" -C -d photostore -Q "SELECT 1" || exit 1',
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+    mem_limit: 2g
+    restart: unless-stopped
+    networks:
+      - data
+
+  photostore:
+    build:
+      context: .
+      target: production
+    env_file:
+      - .env
+    environment:
+      SPRING_DATASOURCE_URL: "jdbc:sqlserver://mssql:1433;databaseName=photostore;encrypt=true;trustServerCertificate=true"
+    volumes:
+      - photostore-storage:/app/storage
+      - photostore-profiles:/app/profile_pictures
+      - photostore-covers:/app/album_covers
+      - photostore-chunks:/app/chunks
+    depends_on:
+      mssql:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - edge
+      - data
+
+  frontend:
+    build:
+      context: ./frontend
+      target: production
+    environment:
+      VITE_DEV_API_PROXY: http://photostore:8080
+    depends_on:
+      - photostore
+    restart: unless-stopped
+    networks:
+      - edge
+
+  caddy:
+    image: caddy:2-alpine
+    ports:
+      - 80:80
+      - 443:443
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - frontend
+      - photostore
+    restart: unless-stopped
+    networks:
+      - edge
+
+volumes:
+  mssql-data:
+  photostore-storage:
+  photostore-profiles:
+  photostore-covers:
+  photostore-chunks:
+  caddy-data:
+  caddy-config:
