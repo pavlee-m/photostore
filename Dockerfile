@@ -1,13 +1,20 @@
 # Preferred:  docker compose up --build
 #
 # Standalone against SQL Server on the host:
-#   docker build -t photostore .
+#   docker build --target production -t photostore .
 #   docker run --rm -p 8080:8080 --env-file .env \
 #     --add-host=host.docker.internal:host-gateway \
 #     -v photostore-storage:/app/storage \
 #     -v photostore-profiles:/app/profile_pictures \
 #     -v photostore-covers:/app/album_covers \
 #     photostore
+#
+# Development (JDK + ./mvnw spring-boot:run):
+#   docker build --target development -t photostore-dev .
+#   docker run --rm -p 8080:8080 --env-file .env \
+#     --add-host=host.docker.internal:host-gateway \
+#     -v photostore-storage:/app/storage \
+#     photostore-dev
 
 FROM eclipse-temurin:21-jdk-jammy AS build
 WORKDIR /src
@@ -19,7 +26,22 @@ RUN chmod +x mvnw
 COPY src src
 RUN ./mvnw -B package -DskipTests
 
-FROM eclipse-temurin:21-jre-jammy
+FROM eclipse-temurin:21-jdk-jammy AS development
+WORKDIR /src
+
+COPY mvnw pom.xml ./
+COPY .mvn .mvn
+RUN chmod +x mvnw
+
+COPY src src
+
+EXPOSE 8080
+
+ENV SPRING_DATASOURCE_URL="jdbc:sqlserver://host.docker.internal:1433;databaseName=photostore;encrypt=true;trustServerCertificate=true"
+
+CMD ["./mvnw", "spring-boot:run"]
+
+FROM eclipse-temurin:21-jre-jammy AS production
 WORKDIR /app
 
 RUN groupadd --system --gid 1000 photostore \
