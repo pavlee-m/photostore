@@ -50,7 +50,8 @@ require_repo_env() {
 }
 
 compose() {
-	docker compose -p "$COMPOSE_PROJECT" --project-directory "$REPO_ROOT" "$@"
+	docker compose -p "$COMPOSE_PROJECT" --project-directory "$REPO_ROOT" \
+		-f "$REPO_ROOT/compose.dev.yaml" "$@"
 }
 
 port_pids() {

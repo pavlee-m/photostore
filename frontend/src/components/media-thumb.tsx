@@ -1,10 +1,12 @@
 import {
+	Check,
 	FolderMinus,
 	FolderPlus,
 	MoreHorizontal,
 	Play,
 	Trash2,
 } from "lucide-react";
+import { useMediaPickTile } from "#/components/media-pick-session.tsx";
 import { Button } from "#/components/ui/button.tsx";
 import {
 	ContextMenu,
@@ -23,6 +25,7 @@ import {
 import { Skeleton } from "#/components/ui/skeleton.tsx";
 import { useInView } from "#/hooks/use-in-view.ts";
 import { useMediaObjectUrl } from "#/hooks/use-media-object-url.ts";
+import { cn } from "#/lib/utils.ts";
 import type { MediaFile } from "#/types/media.ts";
 
 export function MediaThumb({
@@ -39,6 +42,11 @@ export function MediaThumb({
 	onRemoveFromAlbum?: (media: MediaFile) => void;
 }) {
 	const { setNode, visible } = useInView<HTMLDivElement>();
+	const pick = useMediaPickTile({
+		id: media.id,
+		name: media.name,
+		onOpen: () => onOpen(media),
+	});
 	const isVideo = media.fileType.startsWith("video/");
 	const { url, error } = useMediaObjectUrl(
 		media.id,
@@ -81,14 +89,15 @@ export function MediaThumb({
 	);
 
 	return (
-		<div className="group relative" ref={setNode}>
+		<div className="group relative" ref={setNode} {...pick.tileProps}>
 			<ContextMenu>
 				<ContextMenuTrigger asChild>
 					<button
-						aria-label={`Open ${media.name}`}
-						className="aspect-square w-full cursor-pointer overflow-hidden rounded-lg border bg-muted transition-colors outline-none hover:border-foreground/20 focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
-						onClick={() => onOpen(media)}
-						type="button"
+						className={cn(
+							"aspect-square w-full cursor-pointer overflow-hidden rounded-lg border bg-muted transition-colors outline-none hover:border-foreground/20 focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50",
+							pick.picked && "border-foreground ring-2 ring-foreground",
+						)}
+						{...pick.photoButtonProps}
 					>
 						{isVideo ? (
 							<span className="flex size-full flex-col items-center justify-center gap-1 text-muted-foreground">
@@ -148,6 +157,23 @@ export function MediaThumb({
 					) : null}
 				</ContextMenuContent>
 			</ContextMenu>
+			{pick.checkmark !== "absent" ? (
+				<Button
+					className={cn(
+						"absolute top-2 left-2 size-8 border-2 border-foreground shadow-sm",
+						pick.picked
+							? "bg-foreground text-background hover:bg-foreground hover:text-background"
+							: "bg-background text-foreground hover:bg-background hover:text-foreground",
+						pick.checkmark === "hover" &&
+							"pointer-events-none opacity-0 transition-opacity group-focus-within:pointer-events-auto group-focus-within:opacity-100 group-hover:pointer-events-auto group-hover:opacity-100",
+					)}
+					size="icon"
+					variant="ghost"
+					{...pick.pickButtonProps}
+				>
+					<Check />
+				</Button>
+			) : null}
 			{hasActions ? (
 				<DropdownMenu>
 					<DropdownMenuTrigger asChild>

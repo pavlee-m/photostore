@@ -46,6 +46,6 @@ Keep implementation details out of the map. Name only user paths, stable handles
 
 - [First-run setup](./first-run-setup.md) covers creating the founder account on a fresh instance.
 - [Sign in and out](./sign-in.md) covers sign-in, redirect, failed credentials, and sign-out.
-- [Photos library](./photos-library.md) covers the empty library, navigation chrome, preview, and delete.
+- [Photos library](./photos-library.md) covers the empty library, navigation chrome, preview, single delete, and picked-photo delete.
 - [Albums](./albums.md) covers creating, opening, editing, and deleting an album.
 - [Admin users](./admin-users.md) covers listing accounts and creating a regular user as founder.
