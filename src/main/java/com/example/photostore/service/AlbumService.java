@@ -80,7 +80,6 @@ public class AlbumService {
     @Transactional
     public void delete(Long albumId, Long userId) {
         Album album = requireOwnedAlbum(albumId, userId);
-        albumMediaRepository.deleteByAlbum_Id(albumId);
         storageService.deleteAlbumCover(album.getCoverPhotoUrl());
         albumRepository.delete(album);
     }
@@ -139,15 +138,6 @@ public class AlbumService {
     }
 
     public record CoverFile(byte[] data, String contentType) {
-    }
-
-    @Transactional
-    public void deleteAllForUser(Long userId) {
-        for (Album album : albumRepository.findByUser_Id(userId)) {
-            albumMediaRepository.deleteByAlbum_Id(album.getId());
-            storageService.deleteAlbumCover(album.getCoverPhotoUrl());
-            albumRepository.delete(album);
-        }
     }
 
     private Album requireOwnedAlbum(Long albumId, Long userId) {

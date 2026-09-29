@@ -8,12 +8,16 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.example.photostore.repository.AlbumRepository;
+import com.example.photostore.repository.MediaFileRepository;
 import com.example.photostore.repository.UserRepository;
 
 import lombok.RequiredArgsConstructor;
 
 import com.example.photostore.dtos.AdminUpdateUserRequest;
 import com.example.photostore.dtos.UserDTO;
+import com.example.photostore.entity.Album;
+import com.example.photostore.entity.MediaFile;
 import com.example.photostore.entity.User;
 import com.example.photostore.exception.EmailAlreadyExistsException;
 import com.example.photostore.exception.ProfilePictureNotFoundException;
@@ -24,6 +28,8 @@ import com.example.photostore.exception.UserNotFoundException;
 import com.example.photostore.mappers.UserMapper;
 import com.example.photostore.security.Encryption;
 
+import java.util.List;
+
 import javax.crypto.SecretKey;
 
 @Service
@@ -31,6 +37,8 @@ import javax.crypto.SecretKey;
 public class UserService {
     
     private final UserRepository userRepository;
+    private final AlbumRepository albumRepository;
+    private final MediaFileRepository mediaFileRepository;
     private final UserMapper userMapper;
 
     @Autowired
@@ -48,10 +56,7 @@ public class UserService {
     @Autowired
     private Encryption encryption;
 
-    @Autowired
-    private AlbumService albumService;
-
-    @Autowired
+    @Autowired 
     private MediaService mediaService;
 
     @Autowired
@@ -104,15 +109,20 @@ public class UserService {
     @Transactional
     public void deleteUser(Long userId) {
         userRepository.findById(userId).orElseThrow(() -> new UserNotFoundException("User not found with id: " + userId));
+        // Delete all upload session files (assembled and chunks).
         for (var session : uploadSessionService.findByUserId(userId)) {
             storageService.deleteSessionFiles(session.getUploadId(), session.getUploadedFileName(), session.getTotalChunks());
         }
-        uploadSessionService.deleteAllForUser(userId);
-        albumService.deleteAllForUser(userId);
-        mediaService.deleteAllForUser(userId);
-        refreshTokenService.deleteAllTokensByUserId(userId);
-        userRepository.deleteById(userId);
+        // Delete profile picture.
         storageService.deleteProfilePictureByUserId(userId);
+        List<MediaFile> mediaFiles = mediaService.findByUser_Id(userId);
+        storageService.deleteUserMediaFiles(mediaFiles);
+        for (Album album : albumRepository.findByUser_Id(userId)) {
+            storageService.deleteAlbumCover(album.getCoverPhotoUrl());
+        }
+        albumRepository.deleteByUser_Id(userId);
+        mediaFileRepository.deleteByUser_Id(userId);
+        userRepository.deleteById(userId);
     }
 
     @Transactional

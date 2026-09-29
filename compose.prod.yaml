@@ -67,8 +67,7 @@ services:
   caddy:
     image: caddy:2-alpine
     ports:
-      - 80:80
-      - 443:443
+      - 8003:8003
     volumes:
       - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy-data:/data

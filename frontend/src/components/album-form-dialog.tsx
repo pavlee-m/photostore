@@ -195,7 +195,7 @@ export function AlbumFormDialog({
 											{editing ? "New cover" : "Cover"}
 										</FieldLabel>
 										{editing && album.coverPhotoUrl && !field.state.value ? (
-											<div className="aspect-[3/1] overflow-hidden rounded-lg">
+											<div className="aspect-3/1 overflow-hidden rounded-lg">
 												<AlbumCover album={album} />
 											</div>
 										) : null}

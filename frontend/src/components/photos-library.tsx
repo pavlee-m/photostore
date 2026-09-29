@@ -13,16 +13,18 @@ import { PageHeader } from "#/components/page-header.tsx";
 import { Skeleton } from "#/components/ui/skeleton.tsx";
 import { groupMediaByDate } from "#/lib/dates.ts";
 import type { MediaFile } from "#/types/media.ts";
+import { useAuthStore } from "#/stores/auth.ts";
 
 const PAGE_SIZE = 24;
 
 export function PhotosLibrary() {
+	const user = useAuthStore((state) => state.user);
 	const [selected, setSelected] = useState<MediaFile | null>(null);
 	const [deleting, setDeleting] = useState<MediaFile | null>(null);
 	const [albumTarget, setAlbumTarget] = useState<MediaFile | null>(null);
 	const sentinelRef = useRef<HTMLDivElement>(null);
 	const mediaQuery = useInfiniteQuery({
-		queryKey: ["media-list"],
+		queryKey: ["media-list", user?.id],
 		queryFn: ({ pageParam }) => listMedia(pageParam, PAGE_SIZE),
 		initialPageParam: 0,
 		getNextPageParam: (lastPage, pages) =>

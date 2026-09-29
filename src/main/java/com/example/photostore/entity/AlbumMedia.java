@@ -1,5 +1,8 @@
 package com.example.photostore.entity;
 
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
+
 import jakarta.persistence.Entity;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
@@ -25,11 +28,13 @@ public class AlbumMedia {
 
     @ManyToOne
     @MapsId("albumId")
+    @OnDelete(action = OnDeleteAction.CASCADE)
     @JoinColumn(name = "album_id", nullable = false)
     private Album album;
 
     @ManyToOne
     @MapsId("mediaId")
+    @OnDelete(action = OnDeleteAction.CASCADE)
     @JoinColumn(name = "media_file_id", nullable = false)
     private MediaFile media;
 

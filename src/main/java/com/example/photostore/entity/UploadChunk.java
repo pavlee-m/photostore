@@ -1,5 +1,8 @@
 package com.example.photostore.entity;
 
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
+
 import jakarta.persistence.EmbeddedId;
 import jakarta.persistence.Entity;
 import jakarta.persistence.JoinColumn;
@@ -8,9 +11,7 @@ import jakarta.persistence.MapsId;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
-import lombok.ToString;
 
 @Entity
 @Table(name = "upload_chunks")
@@ -22,10 +23,9 @@ public class UploadChunk {
     @EmbeddedId
     private UploadChunkId id;
 
-    @ToString.Exclude
-    @EqualsAndHashCode.Exclude
     @ManyToOne
     @MapsId("uploadId")
+    @OnDelete(action = OnDeleteAction.CASCADE)
     @JoinColumn(name = "upload_id", nullable = false)
     private UploadSession session;
 }

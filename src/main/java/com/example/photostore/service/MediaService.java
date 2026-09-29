@@ -81,18 +81,6 @@ public class MediaService {
         storageService.deleteStoredFile(thumbnailPath);
     }
 
-    @Transactional
-    public void deleteAllForUser(Long userId) {
-        for (MediaFile mediaFile : mediaFileRepository.findByUser_Id(userId)) {
-            albumMediaRepository.deleteByMedia_Id(mediaFile.getId());
-            String path = mediaFile.getPath();
-            String thumbnailPath = mediaFile.getThumbnailPath();
-            mediaFileRepository.delete(mediaFile);
-            storageService.deleteStoredFile(path);
-            storageService.deleteStoredFile(thumbnailPath);
-        }
-    }
-
     public MediaFile findByHashAndUser_Id(String hash, Long userId) {
         return mediaFileRepository.findByHashAndUser_Id(hash, userId);
     }
@@ -109,6 +97,10 @@ public class MediaService {
             throw new MediaFileNotFoundException(id);
         }
         return mediaFile;
+    }
+
+    public List<MediaFile> findByUser_Id(Long userId) {
+        return mediaFileRepository.findByUser_Id(userId);
     }
 
     @Transactional

@@ -20,6 +20,7 @@ import org.springframework.util.StringUtils;
 import org.springframework.util.unit.DataSize;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.example.photostore.entity.MediaFile;
 import com.example.photostore.entity.UploadSession;
 import com.example.photostore.entity.User;
 import com.example.photostore.exception.InvalidFileException;
@@ -269,6 +270,15 @@ public class StorageService {
         deleteUploadTempFiles(uploadId, assembledPath, totalChunks);
     }
 
+    public void deleteUserMediaFiles(List<MediaFile> mediaFiles) {
+        for (var mediaFile : mediaFiles) {
+            System.out.println("Deleting media file: " + mediaFile.getPath());
+            System.out.println("Deleting media file thumbnail: " + mediaFile.getThumbnailPath());
+            deleteStoredFile(mediaFile.getPath());
+            deleteStoredFile(mediaFile.getThumbnailPath());
+        }
+    }
+
     private void deleteUploadTempFiles(Long uploadId, Path assembledPath, int totalChunks) {
         try {
             Files.deleteIfExists(assembledPath);
@@ -395,5 +405,13 @@ public class StorageService {
     public String imageContentTypeFromFileName(String fileName) {
         String contentType = fileTypeFromExtension(extractFormatFromFilename(fileName));
         return contentType != null ? contentType : MediaType.APPLICATION_OCTET_STREAM_VALUE;
+    }
+
+    public float resolveStorageSpace(Float requestedStorage) {
+        float storageSpace = requestedStorage == null ? 25600.0f : requestedStorage;
+        if (storageSpace <= 0 || storageSpace > getStorageMaxSizeMb()) {
+            throw new StorageCapacityExceededException();
+        }
+        return storageSpace;
     }
 }

@@ -10,5 +10,6 @@ import com.example.photostore.entity.AlbumMediaFileId;
 public interface AlbumMediaRepository extends JpaRepository<AlbumMedia, AlbumMediaFileId> {
     void deleteByMedia_Id(Long mediaId);
     void deleteByAlbum_Id(Long albumId);
+    void deleteByAlbum_User_Id(Long userId);
     List<AlbumMedia> findByAlbum_IdOrderByAddedAtDesc(Long albumId);
 }

@@ -1,4 +1,4 @@
-http://localhost {
+http://localhost:8003 {
 	encode gzip
 
 	@spring path /api* /swagger-ui* /v3/api-docs*

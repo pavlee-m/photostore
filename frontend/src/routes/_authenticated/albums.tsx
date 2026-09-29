@@ -32,19 +32,21 @@ import { Skeleton } from "#/components/ui/skeleton.tsx";
 import { forgetAlbumCoverUrl } from "#/hooks/use-album-cover-url.ts";
 import { toastApiError } from "#/lib/api-error.ts";
 import type { Album } from "#/types/album.ts";
+import { useAuthStore } from "#/stores/auth.ts";
 
 export const Route = createFileRoute("/_authenticated/albums")({
 	component: AlbumsPage,
 });
 
 function AlbumsPage() {
+	const user = useAuthStore((state) => state.user);
 	const queryClient = useQueryClient();
 	const openCreateDialog = useAlbumCreateDialog();
 	const [editing, setEditing] = useState<Album | null>(null);
 	const [deleting, setDeleting] = useState<Album | null>(null);
 	const [deleteBusy, setDeleteBusy] = useState(false);
 	const albumsQuery = useQuery({
-		queryKey: ["albums"],
+		queryKey: ["albums", user?.id],
 		queryFn: listAlbums,
 	});
 

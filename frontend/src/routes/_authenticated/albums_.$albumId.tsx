@@ -28,6 +28,7 @@ import { Button } from "#/components/ui/button.tsx";
 import { Skeleton } from "#/components/ui/skeleton.tsx";
 import { toastApiError } from "#/lib/api-error.ts";
 import type { MediaFile } from "#/types/media.ts";
+import { useAuthStore } from "#/stores/auth.ts";
 
 const BATCH_SIZE = 24;
 
@@ -36,6 +37,7 @@ export const Route = createFileRoute("/_authenticated/albums_/$albumId")({
 });
 
 function AlbumPhotosPage() {
+	const user = useAuthStore((state) => state.user);
 	const queryClient = useQueryClient();
 	const { albumId: albumIdParam } = Route.useParams();
 	const albumId = Number(albumIdParam);
@@ -46,7 +48,7 @@ function AlbumPhotosPage() {
 	const [removingIds, setRemovingIds] = useState<Set<number>>(() => new Set());
 	const sentinelRef = useRef<HTMLDivElement>(null);
 	const albumsQuery = useQuery({
-		queryKey: ["albums"],
+		queryKey: ["albums", user?.id],
 		queryFn: listAlbums,
 	});
 	const mediaQueryKey = ["album-media", albumId] as const;

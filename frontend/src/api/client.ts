@@ -22,7 +22,8 @@ function resolveApiUrl(path: string) {
 		| string
 		| undefined;
 	if (configuredBase) {
-		return `${configuredBase.replace(/\/$/, "")}${path}`;
+		console.log("configuredBase", configuredBase);
+		return `${configuredBase}${path}`;
 	}
 	if (import.meta.env.SSR) {
 		const fromVite =
@@ -34,8 +35,10 @@ function resolveApiUrl(path: string) {
 				? process.env.VITE_DEV_API_PROXY
 				: "";
 		const ssrBase = fromVite || fromProcess || "http://localhost:8080";
+		console.log("ssrBase", ssrBase);
 		return `${ssrBase.replace(/\/$/, "")}${path}`;
 	}
+	console.log("path", path);
 	return path;
 }
 
@@ -74,7 +77,6 @@ export async function apiFetch(path: string, init: RequestInit = {}) {
 	) {
 		headers.set("Content-Type", "application/json");
 	}
-
 	try {
 		return await fetch(resolveApiUrl(path), {
 			...init,

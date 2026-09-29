@@ -25,7 +25,6 @@ import com.example.photostore.dtos.PagedResponse;
 import com.example.photostore.dtos.UserDTO;
 import com.example.photostore.entity.Role;
 import com.example.photostore.entity.User;
-import com.example.photostore.exception.StorageCapacityExceededException;
 import com.example.photostore.service.RoleService;
 import com.example.photostore.service.StorageService;
 import com.example.photostore.service.UserService;
@@ -63,7 +62,7 @@ public class AdminController {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Forbidden");
         }
         Role userRole = roleService.findByName(roleName);
-        float storageSpace = resolveStorageSpace(createUserRequest.getStorage_space());
+        float storageSpace = storageService.resolveStorageSpace(createUserRequest.getStorage_space());
         final User newUser = User.builder()
                 .email(createUserRequest.getEmail())
                 .password(encoder.encode(createUserRequest.getPassword()))
@@ -104,13 +103,5 @@ public class AdminController {
         }
         userService.changePassword(id, newPassword);
         return ResponseEntity.status(HttpStatus.OK).body("Password changed successfully!");
-    }
-
-    private float resolveStorageSpace(Float requestedStorage) {
-        float storageSpace = requestedStorage == null ? 25600.0f : requestedStorage;
-        if (storageSpace <= 0 || storageSpace > storageService.getStorageMaxSizeMb()) {
-            throw new StorageCapacityExceededException();
-        }
-        return storageSpace;
     }
 }

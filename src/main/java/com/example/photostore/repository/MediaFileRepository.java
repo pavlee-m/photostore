@@ -13,6 +13,7 @@ public interface MediaFileRepository extends JpaRepository<MediaFile, Long> {
     MediaFile findByHashAndUser_Id(String hash, Long userId);
     Optional<MediaFile> findByIdAndUser_Id(Long id, Long userId);
     List<MediaFile> findByUser_Id(Long userId);
+    void deleteByUser_Id(Long userId);
     List<MediaFile> findByUser_IdOrderByUploadedAtDesc(Long userId, Pageable pageable);
 
 }
