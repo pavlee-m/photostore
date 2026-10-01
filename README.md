@@ -53,11 +53,11 @@ Photostore is a self-hosted photo and video library for storing, browsing, and o
 
 ```text
 Browser
-  └── TanStack Start / React frontend (:3000)
-        └── /api proxy
-              └── Spring Boot REST API (:8080)
-                    ├── Microsoft SQL Server (:1433)
-                    └── Encrypted filesystem storage
+  └── Caddy (:8003) — static frontend files + reverse proxy
+        ├── /            Static TanStack Start / React SPA
+        └── /api         Spring Boot REST API (:8080)
+              ├── Microsoft SQL Server (:1433)
+              └── Encrypted filesystem storage
 ```
 
 The database stores users, roles, albums, media metadata, refresh tokens, and upload-session state. Binary media is stored on the filesystem and encrypted with a per-user key protected by the application master key.
@@ -71,7 +71,7 @@ The database stores users, roles, albums, media metadata, refresh tokens, and up
 
 Java 21 is only required when running the backend outside Docker.
 
-### 1. Configure the application
+### Configure the application
 
 Create the local environment file:
 
@@ -94,53 +94,50 @@ Run the command separately for `JWT_SECRET` and `PHOTO_STORE_MASTER_KEY`. The SQ
 | `JWT_SECRET` | Key used to sign authentication tokens |
 | `PHOTO_STORE_MASTER_KEY` | Key used to protect users' media-encryption keys |
 | `MSSQL_PORT` | Optional host database port; defaults to `1433` |
-| `PHOTOSTORE_SITE` | Optional Caddy site address; defaults to `http://localhost`. Set a real hostname to enable automatic HTTPS. |
+| `VITE_API_BASE_URL` | Optional. Build-time API base URL baked into the frontend bundle. Defaults to same origin (`/api` via Caddy). Changing it requires rebuilding the Caddy image. |
 | `SPRINGDOC_API_DOCS_ENABLED` | Optional. Set to `true` with the Swagger UI flag to publish OpenAPI JSON. Defaults to `false`. |
 | `SPRINGDOC_SWAGGER_UI_ENABLED` | Optional. Set to `true` with the API docs flag to publish Swagger UI. Defaults to `false`. |
 
 Keep the master key safe. Changing or losing it can make existing encrypted media unreadable.
 
-### 2. Start production
+## Running with Docker
+
+### Production
 
 From the repository root:
 
 ```bash
-docker compose up --build
+docker compose -f compose.prod.yaml up --build
 ```
 
-`compose.yaml` includes `compose.prod.yaml`. This starts SQL Server, the packaged API, the packaged frontend, and Caddy. Open [http://localhost](http://localhost). Caddy is the only published HTTP origin. The UI and `/api` share that origin.
+This starts SQL Server, the packaged API, and Caddy, which serves the static frontend bundle and reverse-proxies `/api` to the API container. Open [http://localhost:8003](http://localhost:8003). Caddy is the only published HTTP origin. The UI and `/api` share that origin.
 
 On the first visit, Photostore redirects to `/setup`, where the initial administrator account can be created.
 
-To serve a real hostname (and Caddy's automatic HTTPS for it):
+The Caddy site address is hardcoded to `http://localhost:8003` in `caddy/Caddyfile`. To serve a real hostname (and Caddy's automatic HTTPS for it), edit that site address and restart the stack:
 
 ```bash
-PHOTOSTORE_SITE=photos.example.com docker compose up --build
+# in caddy/Caddyfile: photos.example.com { ... }
+docker compose -f compose.prod.yaml up -d --build caddy
 ```
+
+The frontend API base URL is baked in at image build time (`VITE_API_BASE_URL` build arg in `compose.prod.yaml`, defaulting to same origin). It is not read from the container environment at runtime.
 
 `APP_PORT` is not published in production.
 
-For the development images, including the Vite frontend at [http://localhost:3000](http://localhost:3000):
+### Development
 
 ```bash
 docker compose -f compose.dev.yaml up --build
 ```
 
-### 3. Start the frontend
+This starts SQL Server, the backend with `./mvnw spring-boot:run` (hot-reloading from the mounted `src/`), and the Vite dev server. Open the frontend at [http://localhost:3000](http://localhost:3000) and the backend API directly at [http://localhost:8080](http://localhost:8080).
 
-In another terminal:
+## Running bare metal
 
-```bash
-cd frontend
-bun install
-bun --bun run dev
-```
+Requires Java 21, a local SQL Server instance with a `photostore` database, and [Bun](https://bun.sh/).
 
-Open [http://localhost:3000](http://localhost:3000). On the first visit, Photostore redirects to `/setup`, where the initial administrator account can be created.
-
-## Running without Docker
-
-Start a local SQL Server instance with a `photostore` database, configure `.env`, and then run:
+Configure `.env` as described above, then start the backend:
 
 ```bash
 ./mvnw spring-boot:run
@@ -152,27 +149,16 @@ The backend reads `.env` by default. To use another environment file:
 ENV_FILE=.env.staging ./mvnw spring-boot:run
 ```
 
-Start the frontend separately as described above. Vite proxies `/api` to `VITE_DEV_API_PROXY` when set, or to `http://localhost:8080`.
-
-## Useful commands
-
-### Backend
-
-```bash
-./mvnw test
-./mvnw package
-```
-
-### Frontend
+In a second terminal, start the frontend dev server:
 
 ```bash
 cd frontend
+bun install
 bun --bun run dev
-bun --bun run build
-bun --bun run lint
-bun --bun run format
-bun --bun run check
 ```
+
+Open [http://localhost:3000](http://localhost:3000). On the first visit, Photostore redirects to `/setup`, where the initial administrator account can be created. The frontend proxies `/api` to `VITE_DEV_API_PROXY` when set, or to `http://localhost:8080`.
+
 
 ## API documentation
 
@@ -180,8 +166,8 @@ Swagger UI and the OpenAPI spec are off by default. Set both `SPRINGDOC_API_DOCS
 
 With the production stack, those paths are on the same origin:
 
-- Swagger UI: [http://localhost/swagger-ui.html](http://localhost/swagger-ui.html)
-- OpenAPI JSON: [http://localhost/v3/api-docs](http://localhost/v3/api-docs)
+- Swagger UI: [http://localhost:8003/swagger-ui.html](http://localhost:8003/swagger-ui.html)
+- OpenAPI JSON: [http://localhost:8003/v3/api-docs](http://localhost:8003/v3/api-docs)
 
 With `compose.dev.yaml`, they stay on the published API:
 
@@ -195,11 +181,10 @@ With `compose.dev.yaml`, they stay on the published API:
 ├── src/main/java/          Spring Boot application
 ├── src/main/resources/     Backend configuration and database schema
 ├── src/test/               Backend unit and integration tests
-├── frontend/               TanStack Start application
+├── frontend/               TanStack Start application (static SPA in production)
 ├── docker/mssql/           SQL Server initialization script
-├── caddy/                  Production Caddyfile (public origin and path policy)
-├── compose.yaml            Includes the production Compose file
-├── compose.prod.yaml       SQL Server, packaged API, frontend, and Caddy
+├── caddy/                  Production Caddy image: static files + reverse proxy
+├── compose.prod.yaml       SQL Server, packaged API, and Caddy
 ├── compose.dev.yaml        SQL Server, spring-boot:run, and Vite
 ├── Dockerfile              Backend production image
 └── .env.example            Environment variable template

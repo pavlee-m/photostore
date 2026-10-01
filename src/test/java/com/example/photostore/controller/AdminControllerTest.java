@@ -1,5 +1,6 @@
 package com.example.photostore.controller;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doThrow;
@@ -18,6 +19,7 @@ import java.util.List;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
@@ -35,6 +37,7 @@ import com.example.photostore.dtos.UserDTO;
 import com.example.photostore.entity.Role;
 import com.example.photostore.entity.User;
 import com.example.photostore.exception.EmailAlreadyExistsException;
+import com.example.photostore.exception.StorageCapacityExceededException;
 import com.example.photostore.exception.UserNotFoundException;
 import com.example.photostore.security.JwtUtil;
 import com.example.photostore.service.CustomUserDetailsService;
@@ -82,7 +85,7 @@ class AdminControllerTest {
         when(userService.existsByEmail("user@example.com")).thenReturn(false);
         when(roleService.findByName("ROLE_USER")).thenReturn(new Role(2L, "ROLE_USER"));
         when(encoder.encode("password")).thenReturn("encoded-password");
-        when(storageService.getStorageMaxSizeMb()).thenReturn(102400);
+        when(storageService.resolveStorageSpace(isNull())).thenReturn(25600.0f);
 
         mockMvc.perform(post("/api/v1/admin/create-user")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -90,7 +93,26 @@ class AdminControllerTest {
                 .andExpect(status().isCreated())
                 .andExpect(content().string("User registered successfully!"));
 
-        verify(userService).saveUser(any(User.class));
+        ArgumentCaptor<User> savedUser = ArgumentCaptor.forClass(User.class);
+        verify(userService).saveUser(savedUser.capture());
+        assertEquals(25600.0f, savedUser.getValue().getStorage_space());
+        assertEquals("user@example.com", savedUser.getValue().getEmail());
+        assertEquals("ROLE_USER", savedUser.getValue().getRole().getName());
+    }
+
+    @Test
+    void createUser_mapsStorageCapacityError() throws Exception {
+        when(userService.existsByEmail("user@example.com")).thenReturn(false);
+        when(roleService.findByName("ROLE_USER")).thenReturn(new Role(2L, "ROLE_USER"));
+        when(storageService.resolveStorageSpace(999999.0f)).thenThrow(new StorageCapacityExceededException());
+
+        mockMvc.perform(post("/api/v1/admin/create-user")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\":\"user@example.com\",\"password\":\"password\",\"storage_space\":999999}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("STORAGE_CAPACITY_EXCEEDED"));
+
+        verify(userService, never()).saveUser(any(User.class));
     }
 
     @Test
@@ -135,14 +157,17 @@ class AdminControllerTest {
         when(userService.existsByEmail("user@example.com")).thenReturn(false);
         when(roleService.findByName("ROLE_ADMIN")).thenReturn(new Role(1L, "ROLE_ADMIN"));
         when(encoder.encode("password")).thenReturn("encoded-password");
-        when(storageService.getStorageMaxSizeMb()).thenReturn(102400);
+        when(storageService.resolveStorageSpace(51200.0f)).thenReturn(51200.0f);
 
         mockMvc.perform(post("/api/v1/admin/create-user")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"email\":\"user@example.com\",\"password\":\"password\",\"storage_space\":51200,\"roleName\":\"ROLE_ADMIN\"}"))
                 .andExpect(status().isCreated());
 
-        verify(userService).saveUser(any(User.class));
+        ArgumentCaptor<User> savedUser = ArgumentCaptor.forClass(User.class);
+        verify(userService).saveUser(savedUser.capture());
+        assertEquals(51200.0f, savedUser.getValue().getStorage_space());
+        assertEquals("ROLE_ADMIN", savedUser.getValue().getRole().getName());
     }
 
     @Test

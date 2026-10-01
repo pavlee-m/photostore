@@ -30,7 +30,7 @@ services:
       context: .
       target: development
     ports:
-      - "${APP_PORT:-8080}:8080"
+      - "8080:8080"
     env_file:
       - .env
     environment:
@@ -56,9 +56,9 @@ services:
       context: ./frontend
       target: development
     ports:
-      - "${FRONTEND_PORT:-3000}:3000"
+      - 3000:3000
     environment:
-      VITE_DEV_API_PROXY: http://photostore:8080
+      VITE_API_BASE_URL: http://localhost:8080
     volumes:
       - ./frontend:/app
       - frontend-node-modules:/app/node_modules

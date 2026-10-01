@@ -52,28 +52,19 @@ services:
       - edge
       - data
 
-  frontend:
-    build:
-      context: ./frontend
-      target: production
-    environment:
-      VITE_DEV_API_PROXY: http://photostore:8080
-    depends_on:
-      - photostore
-    restart: unless-stopped
-    networks:
-      - edge
-
   caddy:
-    image: caddy:2-alpine
+    build:
+      context: .
+      dockerfile: caddy/Dockerfile
+      target: production
+      args:
+        VITE_API_BASE_URL: ""
     ports:
-      - 8003:8003
+      - "8003:8003"
     volumes:
-      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy-data:/data
       - caddy-config:/config
     depends_on:
-      - frontend
       - photostore
     restart: unless-stopped
     networks:

@@ -1,6 +1,3 @@
-import { createIsomorphicFn } from "@tanstack/react-start";
-import { getRequestHeader } from "@tanstack/react-start/server";
-
 export class ApiError extends Error {
 	readonly status: number;
 	readonly code?: string;
@@ -13,33 +10,9 @@ export class ApiError extends Error {
 	}
 }
 
-const getCookieHeader = createIsomorphicFn()
-	.server(() => getRequestHeader("cookie"))
-	.client(() => undefined);
-
 function resolveApiUrl(path: string) {
-	const configuredBase = import.meta.env.VITE_API_BASE_URL as
-		| string
-		| undefined;
-	if (configuredBase) {
-		console.log("configuredBase", configuredBase);
-		return `${configuredBase}${path}`;
-	}
-	if (import.meta.env.SSR) {
-		const fromVite =
-			typeof import.meta.env.VITE_DEV_API_PROXY === "string"
-				? import.meta.env.VITE_DEV_API_PROXY
-				: "";
-		const fromProcess =
-			typeof process !== "undefined" && process.env.VITE_DEV_API_PROXY
-				? process.env.VITE_DEV_API_PROXY
-				: "";
-		const ssrBase = fromVite || fromProcess || "http://localhost:8080";
-		console.log("ssrBase", ssrBase);
-		return `${ssrBase.replace(/\/$/, "")}${path}`;
-	}
-	console.log("path", path);
-	return path;
+	const baseUrl = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8080";
+	return `${baseUrl}${path}`;
 }
 
 export async function parseApiError(response: Response) {
@@ -66,10 +39,6 @@ export async function parseApiError(response: Response) {
 
 export async function apiFetch(path: string, init: RequestInit = {}) {
 	const headers = new Headers(init.headers);
-	const cookie = getCookieHeader();
-	if (cookie) {
-		headers.set("Cookie", cookie);
-	}
 	if (
 		init.body &&
 		typeof init.body === "string" &&

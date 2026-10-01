@@ -1,16 +1,18 @@
 http://localhost:8003 {
 	encode gzip
 
-	@spring path /api* /swagger-ui* /v3/api-docs*
+	@spring path /api /api/* /swagger-ui* /v3/api-docs*
 	handle @spring {
-		reverse_proxy photostore:8080 {
-			header_up Host {host}
-		}
+		reverse_proxy photostore:8080
 	}
 
 	handle {
-		reverse_proxy frontend:3000 {
-			header_up Host {host}
-		}
+		root * /srv/www
+
+		@immutable path /assets/*
+		header @immutable Cache-Control "public, max-age=31536000, immutable"
+
+		try_files {path} /index.html
+		file_server
 	}
 }
